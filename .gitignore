@@ -1,0 +1,13 @@
+*.pyc
+*.pyo
+*.iml
+*.egg
+*.egg-info
+*.zip
+*/__pycache__/*
+.idea/
+vpy/
+build/
+dist/
+documentation/source/adclient*.rst
+documentation/source/modules.rst
