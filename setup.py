@@ -4,9 +4,15 @@ __author__ = 'Jason Corbett'
 
 from setuptools import setup, find_packages
 
+import sys
+
 requirements = []
 with open('requirements.txt', 'r') as reqfile:
     requirements.extend(reqfile.read().split())
+
+# get the backport of the enum module if python version is less than 3.4
+if sys.version_info[0] < 3 or sys.version_info[1] < 4:
+    requirements.append('enum34')
 
 build_requirements = []
 with open('build-requirements.txt', 'r') as reqfile:
