@@ -6,6 +6,7 @@ __author__ = 'jcorbett'
 import logging
 from enum import Enum
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+from selenium.webdriver.common.by import By
 from selenium.common.exceptions import WebDriverException
 from selenium import webdriver
 import time
@@ -27,6 +28,49 @@ class BrowserType(Enum):
     PHANTOMJS = (DesiredCapabilities.PHANTOMJS, webdriver.PhantomJS)
 
 
+class Find:
+    """
+    This is a factory to make it easy to create ways of finding elements.
+    """
+
+    def __init__(self, by, value):
+        self.finders = [(by, value),]
+
+    def Or(self, finder):
+        self.finders.append(finder)
+
+    @classmethod
+    def by_id(cls, id_value):
+        return Find(By.ID, id_value)
+
+    @classmethod
+    def by_name(cls, name_value):
+        return Find(By.NAME, name_value)
+
+    @classmethod
+    def by_class_name(cls, class_name_value):
+        return Find(By.CLASS_NAME, class_name_value)
+
+    @classmethod
+    def by_link_text(cls, link_text_value):
+        return Find(By.LINK_TEXT, link_text_value)
+
+    @classmethod
+    def by_partial_link_text(cls, partial_link_text_value):
+        return Find(By.PARTIAL_LINK_TEXT, partial_link_text_value)
+
+    @classmethod
+    def by_css_selector(cls, css_selector_value):
+        return Find(By.CSS_SELECTOR, css_selector_value)
+
+    @classmethod
+    def by_xpath(cls, xpath_value):
+        return Find(By.XPATH, xpath_value)
+
+    @classmethod
+    def by_tag_name(cls, tag_name_value):
+        return Find(By.TAG_NAME, tag_name_value)
+
 class Timer:
     """A Timer tracks the start time (at creation) and will tell you if it is past the timeout value."""
 
@@ -36,6 +80,40 @@ class Timer:
 
     def is_past_timeout(self) -> bool:
         return time.time() > self.end
+
+
+class WebElementLocator:
+    """
+    """
+
+    def __init__(self, name, finder: Find):
+        # id=None, xpath=None, link_text=None, partial_link_text=None, name=None, href=None,
+        # tag_name=None, class_name=None, css_selector=None):
+        self.name = name
+        self.finder = finder
+        self.logger = logging.getLogger("slickwd.WebElementLocator")
+
+    def find_all_elements_matching(self, wd_browser, timeout, log=True):
+        """Find any web elements matching any one of the finders.  This method returns a list."""
+
+    def find_element_matching(self, wd_browser, timeout, log=True):
+        """Find a single element matching the finder(s) that make up this locator."""
+        timer = Timer(timeout)
+        retval = None
+        if timeout == 0:
+            if log:
+                self.logger.debug("Attempting 1 time to find element {} .".format(self.describe()))
+            for finder in self.finder.finders:
+                try:
+                    return wd_browser.find_element(finder[0], finder[1])
+                except WebDriverException:
+                    pass
+            else:
+                if log:
+                    self.logger.warn("Unable to find element {}".format(self.describe()))
+                return None
+
+
 
 class Browser:
     """
@@ -50,6 +128,11 @@ class Browser:
         If you use a remote_url, it should point to a selenium remote server.
         """
         self.default_timeout = default_timeout
+
+        # tame the huge logs from webdriver
+        wdlogger = logging.getLogger('selenium.webdriver')
+        wdlogger.setLevel(logging.WARNING)
+
         self.logger = logging.getLogger("slickwd.Browser")
         self.logger.debug("New browser instance requested with browser_type={} and remote_url={}".format(repr(browser_type), repr(remote_url)))
         if isinstance(browser_type, str):
@@ -155,9 +238,4 @@ class Container:
         raise NotImplementedError("is_current_page was not implemented on class: {}".format(self.__class__.__name__))
 
 
-class WebElementLocator:
-    """
-    """
 
-    def __init__(self, locator_name, id=None, name=None, href=None):
-        pass
