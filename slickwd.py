@@ -37,7 +37,7 @@ class Find:
         self.finders = [(by, value),]
 
     def Or(self, finder):
-        self.finders.append(finder)
+        self.finders.extend(finder.finders)
 
     @classmethod
     def by_id(cls, id_value):
