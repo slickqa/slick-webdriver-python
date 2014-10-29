@@ -37,7 +37,7 @@ class Find:
         self.finders = [(by, value),]
 
 
-    def describe(self) -> str:
+    def describe(self):
         """Describe this finder (including any or'ed finders)"""
         return " or ".join([Find.describe_single_finder(finder[0], finder[1]) for finder in self.finders])
 
@@ -103,7 +103,7 @@ class Timer:
         self.start = time.time()
         self.end = self.start + length_in_seconds
 
-    def is_past_timeout(self) -> bool:
+    def is_past_timeout(self):
         return time.time() > self.end
 
 
@@ -111,7 +111,7 @@ class WebElementLocator:
     """
     """
 
-    def __init__(self, name, finder: Find):
+    def __init__(self, name, finder):
         # id=None, xpath=None, link_text=None, partial_link_text=None, name=None, href=None,
         # tag_name=None, class_name=None, css_selector=None):
         self.name = name
@@ -153,7 +153,7 @@ class WebElementLocator:
                         return retval
                 time.sleep(.25)
 
-    def describe(self) -> str:
+    def describe(self):
         """Describe the current element."""
         return self.description
 
@@ -161,7 +161,7 @@ class Browser:
     """
     """
 
-    def __init__(self, browser_type: BrowserType, remote_url=None, default_timeout=30):
+    def __init__(self, browser_type, remote_url=None, default_timeout=30):
         """
         Create a new browser session.  The only required parameter *browser_type* can be
         an instance of the *BrowserType* enum, a dictionary (like those from webdriver's desired_capabilities),
@@ -227,7 +227,7 @@ class Browser:
         self.wd_instance.quit()
         return self
 
-    def go_to(self, url: str, log=True):
+    def go_to(self, url, log=True):
         """Navigate the browser to the url provided"""
         if log:
             self.logger.debug("Navigating to url {}.".format(repr(url)))
@@ -263,12 +263,12 @@ class Browser:
         self.logger.debug("Found page {} after {:.2f} seconds.".format(page_instance.name(), time.time() - timer.start))
         return self
 
-    def exists(self, locator: WebElementLocator, timeout=None, log=True) -> bool:
+    def exists(self, locator, timeout=None, log=True):
         if timeout is None:
             timeout = self.default_timeout
         return locator.find_element_matching(self.wd_instance, timeout, log) is not None
 
-    def click(self, locator: WebElementLocator, timeout=None, log=True):
+    def click(self, locator, timeout=None, log=True):
         if timeout is None:
             timeout = self.default_timeout
         element = locator.find_element_matching(self.wd_instance, timeout, log)
@@ -279,7 +279,7 @@ class Browser:
         element.click()
         return self
 
-    def click_and_type(self, locator: WebElementLocator, keys: str, timeout=None, log=True):
+    def click_and_type(self, locator, keys, timeout=None, log=True):
         if timeout is None:
             timeout = self.default_timeout
         element = locator.find_element_matching(self.wd_instance, timeout, log)
@@ -293,7 +293,7 @@ class Browser:
         element.send_keys(keys)
         return self
 
-    def get_page_text(self) -> str:
+    def get_page_text(self):
         element = self.wd_instance.find_element_by_tag_name("html")
         if element is not None:
             return element.text
@@ -313,7 +313,7 @@ class Container:
             name = name[:-4]
         return name
 
-    def is_current_page(self, browser: Browser):
+    def is_current_page(self, browser):
         raise NotImplementedError("is_current_page was not implemented on class: {}".format(self.__class__.__name__))
 
 
