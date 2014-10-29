@@ -36,6 +36,30 @@ class Find:
     def __init__(self, by, value):
         self.finders = [(by, value),]
 
+
+    def describe(self) -> str:
+        """Describe this finder (including any or'ed finders)"""
+        return " or ".join([Find.describe_single_finder(finder[0], finder[1]) for finder in self.finders])
+
+    @classmethod
+    def describe_single_finder(cls, name, value):
+        if name is By.ID:
+            return "id \"{}\"".format(value)
+        elif name is By.NAME:
+            return "name \"{}\"".format(value)
+        elif name is By.CLASS_NAME:
+            return "class name \"{}\"".format(value)
+        elif name is By.LINK_TEXT:
+            return "link text \"{}\"".format(value)
+        elif name is By.PARTIAL_LINK_TEXT:
+            return "link text containing \"{}\"".format(value)
+        elif name is By.CSS_SELECTOR:
+            return "css selector \"{}\"".format(value)
+        elif name is By.XPATH:
+            return "xpath {}".format(value)
+        elif name is By.TAG_NAME:
+            return "tag name \"{}\"".format(value)
+
     def Or(self, finder):
         self.finders.extend(finder.finders)
 
@@ -71,6 +95,7 @@ class Find:
     def by_tag_name(cls, tag_name_value):
         return Find(By.TAG_NAME, tag_name_value)
 
+
 class Timer:
     """A Timer tracks the start time (at creation) and will tell you if it is past the timeout value."""
 
@@ -91,6 +116,7 @@ class WebElementLocator:
         # tag_name=None, class_name=None, css_selector=None):
         self.name = name
         self.finder = finder
+        self.description = "{} found by {}".format(name, finder.describe())
         self.logger = logging.getLogger("slickwd.WebElementLocator")
 
     def find_all_elements_matching(self, wd_browser, timeout, log=True):
@@ -98,8 +124,6 @@ class WebElementLocator:
 
     def find_element_matching(self, wd_browser, timeout, log=True):
         """Find a single element matching the finder(s) that make up this locator."""
-        timer = Timer(timeout)
-        retval = None
         if timeout == 0:
             if log:
                 self.logger.debug("Attempting 1 time to find element {} .".format(self.describe()))
@@ -112,8 +136,26 @@ class WebElementLocator:
                 if log:
                     self.logger.warn("Unable to find element {}".format(self.describe()))
                 return None
+        else:
+            retval = None
+            timer = Timer(timeout)
+            if log:
+                self.logger.debug("Waiting for up to {:.2f} seconds for element {} to be available.".format(float(timeout), self.describe()))
+            while not timer.is_past_timeout():
+                for finder in self.finder.finders:
+                    try:
+                        retval =  wd_browser.find_element(finder[0], finder[1])
+                    except WebDriverException:
+                        pass
+                    if retval is not None:
+                        if log:
+                            self.logger.info("Found element {} using locator property {} after {:.2f} seconds.".format(self.name, Find.describe_single_finder(finder[0], finder[1]), time.time() - timer.start))
+                        return retval
+                time.sleep(.25)
 
-
+    def describe(self) -> str:
+        """Describe the current element."""
+        return self.description
 
 class Browser:
     """
@@ -134,7 +176,12 @@ class Browser:
         wdlogger.setLevel(logging.WARNING)
 
         self.logger = logging.getLogger("slickwd.Browser")
-        self.logger.debug("New browser instance requested with browser_type={} and remote_url={}".format(repr(browser_type), repr(remote_url)))
+        browser_name = browser_type
+        if isinstance(browser_type, BrowserType):
+            browser_name = browser_type.name
+        elif isinstance(browser_type, dict) and 'browserName' in browser_type:
+            browser_name = browser_type[browser_name]
+        self.logger.debug("New browser instance requested with browser_type={} and remote_url={}".format(repr(browser_name), repr(remote_url)))
         if isinstance(browser_type, str):
             try:
                 browser_type = BrowserType[browser_type.upper()]
@@ -201,7 +248,7 @@ class Browser:
             timeout = self.default_timeout
 
         if log:
-            self.logger.debug("Waiting for up to {} seconds for page {} to be the current page.".format(timeout, page_instance.name()))
+            self.logger.debug("Waiting for up to {:.2f} seconds for page {} to be the current page.".format(float(timeout), page_instance.name()))
 
         timer = Timer(timeout)
         while not timer.is_past_timeout():
@@ -211,13 +258,45 @@ class Browser:
         else:
             # The timer.is_past_timeout() returned true and that kicked us out of the loop
             if log:
-                self.logger.warn("Waited {} seconds for page {} to exist and it never returned true from is_current_page.".format(timeout, page_instance.name()))
-            raise WebDriverException("Waited {} seconds for page {} to exist and it never returned true from is_current_page.".format(timeout, page_instance.name()))
-        self.logger.debug("Found page {} after {} seconds.".format(page_instance.name(), time.time() - timer.start))
+                self.logger.warn("Waited {:.2f} seconds for page {} to exist and it never returned true from is_current_page.".format(float(timeout), page_instance.name()))
+            raise WebDriverException("Waited {:.2f} seconds for page {} to exist and it never returned true from is_current_page.".format(float(timeout), page_instance.name()))
+        self.logger.debug("Found page {} after {:.2f} seconds.".format(page_instance.name(), time.time() - timer.start))
         return self
 
-    def exists(self, locator: WebElementLocator, timeout=None, log=True):
-        return False
+    def exists(self, locator: WebElementLocator, timeout=None, log=True) -> bool:
+        if timeout is None:
+            timeout = self.default_timeout
+        return locator.find_element_matching(self.wd_instance, timeout, log) is not None
+
+    def click(self, locator: WebElementLocator, timeout=None, log=True):
+        if timeout is None:
+            timeout = self.default_timeout
+        element = locator.find_element_matching(self.wd_instance, timeout, log)
+        if element is None:
+            raise WebDriverException("Unable to find element {} after waiting for {:.2f} seconds".format(locator.describe(), float(timeout)))
+        if log:
+            self.logger.debug("Clicking on element {}".format(locator.describe()))
+        element.click()
+        return self
+
+    def click_and_type(self, locator: WebElementLocator, keys: str, timeout=None, log=True):
+        if timeout is None:
+            timeout = self.default_timeout
+        element = locator.find_element_matching(self.wd_instance, timeout, log)
+        if element is None:
+            raise WebDriverException("Unable to find element {} after waiting for {:.2f} seconds".format(locator.describe(), float(timeout)))
+        if log:
+            self.logger.debug("Clicking on element {}".format(locator.describe()))
+        element.click()
+        if log:
+            self.logger.debug("Typing \"{}\" into element {}".format(keys, locator.describe()))
+        element.send_keys(keys)
+        return self
+
+    def get_page_text(self) -> str:
+        element = self.wd_instance.find_element_by_tag_name("html")
+        if element is not None:
+            return element.text
 
 
 
