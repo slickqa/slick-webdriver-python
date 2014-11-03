@@ -10,7 +10,7 @@ for tests with less, more readable code by:
   * Waiting for elements to exist (with customizable timeout) so that you don't have to
   * Providing a Page api that allows for easy organization of locators
   * Page api allows for flat (Page -> locator) and nested (FrameworkElement -> Page -> Container -> Locator) api
-  * No need to instantiate every page class individually (that makes code look stupid)
+  * No need to instantiate every page class individually (avoiding boilerplate code)
   * Event based api where you can add your own pre and post actions as part of standard calls (like taking a screenshot on click)
   * more good tidbits
 
