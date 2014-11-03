@@ -29,5 +29,5 @@ setup(
     install_requires=requirements,
     setup_requires=build_requirements,
     author="SlickQA Developers",
-    url="http://www.slickqa.com/webdriver"
+    url="http://www.slickqa.com/webdriver/python"
 )
