@@ -1,14 +1,19 @@
 .. slick webdriver documentation master file, created by Jason Corbett
 
-Python client for AccessData REST Apis
-======================================
+Slick Webdriver Python Wrapper
+==============================
 
 Contents:
 
 .. toctree::
    :maxdepth: 2
 
-   modules
+   getting-started
+   page-classes
+   locators
+   examples
+   raw-webdriver
+   slickwd
 
 Indices and tables
 ==================

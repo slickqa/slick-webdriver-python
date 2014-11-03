@@ -14,18 +14,38 @@ import time
 
 class BrowserType(Enum):
     """
-    This enum is to help identify browsers to launch.  The values are the desired capabilities.
+    This enum is to help identify browsers to launch.  The values are the desired capabilities.  All
+    values are static properties on the BrowserType class.
+
+    Example Use::
+
+        from slickwd import Browser, BrowserType
+
+        browser = Browser(BrowserType.CHROME)
+
     """
     CHROME = (DesiredCapabilities.CHROME, webdriver.Chrome)
+    """
+    Chrome Browser (you must download
+    `chromedriver <https://sites.google.com/a/chromium.org/chromedriver/downloads>`_ separately and place in path)
+    """
     FIREFOX = (DesiredCapabilities.FIREFOX, webdriver.Firefox)
+    """Firefox Browser"""
     IE = (DesiredCapabilities.INTERNETEXPLORER, webdriver.Ie)
+    """
+    Internet Explorer Browser (you must download `internet explorer driver
+    <https://code.google.com/p/selenium/wiki/InternetExplorerDriver>`_ separately and place it in your path)"""
     OPERA = (DesiredCapabilities.OPERA, webdriver.Opera)
+    """Opera Browser"""
     SAFARI = (DesiredCapabilities.SAFARI, webdriver.Safari)
+    """Safari Browser"""
     HTMLUNITWITHJS = (DesiredCapabilities.HTMLUNITWITHJS, None)
+    """HTMLUnit with Javascript enabled, only for use with Remote"""
     IPHONE = (DesiredCapabilities.IPHONE, None)
     IPAD = (DesiredCapabilities.IPAD, None)
     ANDROID = (DesiredCapabilities.ANDROID, None)
     PHANTOMJS = (DesiredCapabilities.PHANTOMJS, webdriver.PhantomJS)
+    """PhantomJS headless browser (must download separately, `phantomjs homepage <http://phantomjs.org/>`_)"""
 
 
 class Find:
@@ -159,6 +179,23 @@ class WebElementLocator:
 
 class Browser:
     """
+    The Browser is the primary interface you have to automate a browser.  An instance of Browser has the same
+    methods no matter which browser it is you launch.  It also abstracts away the creation of remote browser
+    instances when using `Selenium Grid <https://code.google.com/p/selenium/wiki/Grid2>`_ or `Selenium Server
+    <http://selenium-python.readthedocs.org/en/latest/installation.html#downloading-selenium-server>`_.
+
+    Most actions that the Browser has takes an argument called locator, which should be an instance of
+    :class:`.WebElementLocator`.  These are normally arranged into Page classes to make them reusable
+    by multiple tests / functions.  See :doc:`page-classes`.
+
+    To create an instance of Browser, provide the browser type you would like, and the remote_url (if any)::
+
+        from slickwd import Browser, BrowserType
+
+        browser = Browser(BrowserType.PHANTOMJS)
+        browser.go_to("http://www.google.com")
+
+    For more examples, see :doc:`examples`.
     """
 
     def __init__(self, browser_type, remote_url=None, default_timeout=30):
@@ -303,7 +340,7 @@ class Browser:
 
 class Container:
     """
-    A generic container for structuring *WebElementLocator*s into groupings that help programmers find the right
+    A generic container for structuring multiple *WebElementLocator* into groupings that help programmers find the right
     shared definition.
     """
 
