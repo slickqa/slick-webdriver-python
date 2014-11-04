@@ -50,7 +50,15 @@ class BrowserType(Enum):
 
 class Find:
     """
-    This is a factory to make it easy to create ways of finding elements.
+    Use the class methods on this class to create instances, which are used by the WebElementLocator class
+    to find elements in a browser.
+
+    Example Usage::
+
+        Search_Query_Text_Field = WebElementLocator("Search Box", Find.by_name("q"))
+
+    This would create an instance of WebElementLocator called Search_Query_Text_Field that can be found
+    on the page by looking for an element with the name property set to *q*.
     """
 
     def __init__(self, by, value):
@@ -58,7 +66,8 @@ class Find:
 
 
     def describe(self):
-        """Describe this finder (including any or'ed finders)"""
+        """Describe this finder in a plain english sort of way.  This allows for better logging.
+        Example output would be "name q" for `Find.by_name("q")`."""
         return " or ".join([Find.describe_single_finder(finder[0], finder[1]) for finder in self.finders])
 
     @classmethod
@@ -81,43 +90,121 @@ class Find:
             return "tag name \"{}\"".format(value)
 
     def Or(self, finder):
+        """
+        You can _or_ multiple finders together by using the Or method.  An example would be::
+
+            Search_Query_Text_Field = WebElementLocator("Search Box", Find.by_name("q").Or(Find.by_id("q")))
+
+        If you use this to include multiple finders, note that it is not super precise.  The framework iterates over
+        the list of finders, and the first one that returns an element wins.
+
+        :param finder: Another finder to consider when looking for the element.
+        :type finder: Find
+        :return: This same instance of Find with the other finder included.
+        :rtype: Find
+        """
         self.finders.extend(finder.finders)
+        return self
 
     @classmethod
     def by_id(cls, id_value):
+        """
+        Find a web element using the element's _id_ attribute.
+
+        :param id_value: the id of the web element you are looking for
+        :type id_value: str
+        :return: an instance of Find that uses the id as the way to find the element.
+        :rtype: Find
+        """
         return Find(By.ID, id_value)
 
     @classmethod
     def by_name(cls, name_value):
+        """
+        Find a web element using the element's _name_ attribute.
+
+        :param name_value: the value of the name attribute of the web element you are looking for
+        :type name_value: str
+        :return: an instance of Find that uses the name attribute as the way to find the element.
+        :rtype: Find
+        """
         return Find(By.NAME, name_value)
 
     @classmethod
     def by_class_name(cls, class_name_value):
+        """
+        Find a web element by looking for one that uses a particular css class name.
+
+        :param class_name_value: the name of one of the css classes of the web element you are looking for
+        :type class_name_value: str
+        :return: an instance of Find that uses it's css classes as the way to find the element.
+        :rtype: Find
+        """
         return Find(By.CLASS_NAME, class_name_value)
 
     @classmethod
     def by_link_text(cls, link_text_value):
+        """
+        Find a web element (a link or <a> tag) using the element's exact link text.
+
+        :param link_text_value: the value of the link's inner text
+        :type link_text_value: str
+        :return: an instance of Find that uses the link's text as the way to find the element.
+        :rtype: Find
+        """
         return Find(By.LINK_TEXT, link_text_value)
 
     @classmethod
     def by_partial_link_text(cls, partial_link_text_value):
+        """
+        Find a web element (a link or <a> tag) using part of the element's link text.
+
+        :param partial_link_text_value: a subset of the value of the link's inner text
+        :type partial_link_text_value: str
+        :return: an instance of Find that uses part of the link's text as the way to find the element.
+        :rtype: Find
+        """
         return Find(By.PARTIAL_LINK_TEXT, partial_link_text_value)
 
     @classmethod
     def by_css_selector(cls, css_selector_value):
+        """
+        Find a web element by using a css selector
+
+        :param css_selector_value: the css selector that will identify the element
+        :type css_selector_value: str
+        :return: an instance of Find that uses a css selector to find the element
+        :rtype: Find
+        """
         return Find(By.CSS_SELECTOR, css_selector_value)
 
     @classmethod
     def by_xpath(cls, xpath_value):
+        """
+        Find a web element by using a xpath.
+
+        :param xpath_value: the xpath expression that will identify the element
+        :type xpath_value: str
+        :return: an instance of Find that uses an xpath expression to find the element
+        :rtype: Find
+        """
         return Find(By.XPATH, xpath_value)
 
     @classmethod
     def by_tag_name(cls, tag_name_value):
+        """
+        Find an element using it's tag name.  This is more useful when trying to find multiple elements.
+
+        :param tag_name_value: the name of the html tag for the element or elements your are looking for
+        :type tag_name_value: str
+        :return: an instance of Find that looks for all elements on a page with a particular tag name
+        :rtype: Find
+        """
         return Find(By.TAG_NAME, tag_name_value)
 
 
+# there is no doc because this is not intended to be used externally (not that it can't be)
 class Timer:
-    """A Timer tracks the start time (at creation) and will tell you if it is past the timeout value."""
 
     def __init__(self, length_in_seconds):
         self.start = time.time()
@@ -129,6 +216,10 @@ class Timer:
 
 class WebElementLocator:
     """
+    A WebElementLocator represents information about an element you are trying to find.  It has a name field for
+    nice logging, and a finder field (should be of type :class:`.Find`).
+
+    See :doc:`locators`
     """
 
     def __init__(self, name, finder):
@@ -143,7 +234,19 @@ class WebElementLocator:
         """Find any web elements matching any one of the finders.  This method returns a list."""
 
     def find_element_matching(self, wd_browser, timeout, log=True):
-        """Find a single element matching the finder(s) that make up this locator."""
+        """
+        Find a single element matching the finder(s) that make up this locator before a timeout is reached.
+        This method is used internally by the framework when you call any action on a WebElementLocator, however
+        like is mentioned in :doc:`raw-webdriver` you can use this method to help you get the raw webelements from
+        webdriver for your own use.
+
+        :param wd_browser: The selenium driver (webdriver) instance to use.
+        :param timeout: the max time (in seconds) to wait before giving up on finding the element
+        :type timeout: int or float (use float for sub-second precision)
+        :param log: Whether or not to log details of the look for the element (default is True)
+        :type log: bool
+        :return: a raw webdriver webelement type on success, None on failure
+        """
         if timeout == 0:
             if log:
                 self.logger.debug("Attempting 1 time to find element {} .".format(self.describe()))
@@ -174,7 +277,7 @@ class WebElementLocator:
                 time.sleep(.25)
 
     def describe(self):
-        """Describe the current element."""
+        """Describe the current locator in plain english.  Used for logging."""
         return self.description
 
 class Browser:
@@ -301,11 +404,36 @@ class Browser:
         return self
 
     def exists(self, locator, timeout=None, log=True):
+        """
+        Check to see if an element exists on a page.  You can control how long to wait, and if the method should do
+        any logging.  If you specify 0 for the timeout, the framework will only look for the element once.
+
+        :param locator: the locator to look for
+        :type locator: WebElementLocator
+        :param timeout: The amount of time (in seconds) to look before returning False
+        :type timeout: int or float
+        :param log: Whether or not to log details of the look for the element (default is True)
+        :type log: bool
+        :return: True if an element was found in the time specified
+        :rtype: bool
+        """
         if timeout is None:
             timeout = self.default_timeout
         return locator.find_element_matching(self.wd_instance, timeout, log) is not None
 
     def click(self, locator, timeout=None, log=True):
+        """
+        Click on an element using the mouse.
+
+        :param locator: the locator that specifies which element to click on
+        :type locator: WebElementLocator
+        :param timeout: The amount of time (in seconds) to look before throwing a not found exception
+        :type timeout: int or float (float for sub-second precision)
+        :param log: Whether or not to log details of the look for the element (default is True)
+        :type log: bool
+        :return: The reference to this Browser instance.
+        :rtype: Browser
+        """
         if timeout is None:
             timeout = self.default_timeout
         element = locator.find_element_matching(self.wd_instance, timeout, log)
@@ -317,6 +445,18 @@ class Browser:
         return self
 
     def click_and_type(self, locator, keys, timeout=None, log=True):
+        """
+        Click on an element using the mouse, then send keys to it.  Mostly used for input elements of type text.
+
+        :param locator: the locator that specifies which element to click on and type in
+        :type locator: WebElementLocator
+        :param timeout: The amount of time (in seconds) to look before throwing a not found exception
+        :type timeout: int or float (float for sub-second precision)
+        :param log: Whether or not to log details of the look for the element (default is True)
+        :type log: bool
+        :return: The reference to this Browser instance.
+        :rtype: Browser
+        """
         if timeout is None:
             timeout = self.default_timeout
         element = locator.find_element_matching(self.wd_instance, timeout, log)
@@ -331,6 +471,13 @@ class Browser:
         return self
 
     def get_page_text(self):
+        """
+        Get the text from the current web page.  This tries to get the value of the "text" attribute of the html
+        root element on the page.
+
+        :return: the text of the current page
+        :rtype: str
+        """
         element = self.wd_instance.find_element_by_tag_name("html")
         if element is not None:
             return element.text
