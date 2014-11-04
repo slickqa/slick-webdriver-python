@@ -99,9 +99,9 @@ class Find:
         the list of finders, and the first one that returns an element wins.
 
         :param finder: Another finder to consider when looking for the element.
-        :type finder: Find
+        :type finder: :class:`.Find`
         :return: This same instance of Find with the other finder included.
-        :rtype: Find
+        :rtype: :class:`.Find`
         """
         self.finders.extend(finder.finders)
         return self
@@ -114,7 +114,7 @@ class Find:
         :param id_value: the id of the web element you are looking for
         :type id_value: str
         :return: an instance of Find that uses the id as the way to find the element.
-        :rtype: Find
+        :rtype: :class:`.Find`
         """
         return Find(By.ID, id_value)
 
@@ -126,7 +126,7 @@ class Find:
         :param name_value: the value of the name attribute of the web element you are looking for
         :type name_value: str
         :return: an instance of Find that uses the name attribute as the way to find the element.
-        :rtype: Find
+        :rtype: :class:`.Find`
         """
         return Find(By.NAME, name_value)
 
@@ -138,7 +138,7 @@ class Find:
         :param class_name_value: the name of one of the css classes of the web element you are looking for
         :type class_name_value: str
         :return: an instance of Find that uses it's css classes as the way to find the element.
-        :rtype: Find
+        :rtype: :class:`.Find`
         """
         return Find(By.CLASS_NAME, class_name_value)
 
@@ -150,7 +150,7 @@ class Find:
         :param link_text_value: the value of the link's inner text
         :type link_text_value: str
         :return: an instance of Find that uses the link's text as the way to find the element.
-        :rtype: Find
+        :rtype: :class:`.Find`
         """
         return Find(By.LINK_TEXT, link_text_value)
 
@@ -162,7 +162,7 @@ class Find:
         :param partial_link_text_value: a subset of the value of the link's inner text
         :type partial_link_text_value: str
         :return: an instance of Find that uses part of the link's text as the way to find the element.
-        :rtype: Find
+        :rtype: :class:`.Find`
         """
         return Find(By.PARTIAL_LINK_TEXT, partial_link_text_value)
 
@@ -174,7 +174,7 @@ class Find:
         :param css_selector_value: the css selector that will identify the element
         :type css_selector_value: str
         :return: an instance of Find that uses a css selector to find the element
-        :rtype: Find
+        :rtype: :class:`.Find`
         """
         return Find(By.CSS_SELECTOR, css_selector_value)
 
@@ -186,7 +186,7 @@ class Find:
         :param xpath_value: the xpath expression that will identify the element
         :type xpath_value: str
         :return: an instance of Find that uses an xpath expression to find the element
-        :rtype: Find
+        :rtype: :class:`.Find`
         """
         return Find(By.XPATH, xpath_value)
 
@@ -198,7 +198,7 @@ class Find:
         :param tag_name_value: the name of the html tag for the element or elements your are looking for
         :type tag_name_value: str
         :return: an instance of Find that looks for all elements on a page with a particular tag name
-        :rtype: Find
+        :rtype: :class:`.Find`
         """
         return Find(By.TAG_NAME, tag_name_value)
 
@@ -230,8 +230,30 @@ class WebElementLocator:
         self.description = "{} found by {}".format(name, finder.describe())
         self.logger = logging.getLogger("slickwd.WebElementLocator")
 
-    def find_all_elements_matching(self, wd_browser, timeout, log=True):
-        """Find any web elements matching any one of the finders.  This method returns a list."""
+    def find_all_elements_matching(self, wd_browser, log=True):
+        """
+        Find a list of elements that match a finder.  This method can be useful if you are
+        :doc:`raw-webdriver` and need to select from and inspect a list of elements.
+
+        There is no timeout because it will return an empty list if no matching elements are found.
+
+        :param wd_browser: The raw selenium webdriver driver instance.
+        :param log: Whether or not to log details of the look for the element (default is True)
+        :type log: bool
+        :return: list of matching elements
+        :rtype: list of web element
+        """
+        retval = []
+        if log:
+            self.logger.debug("Looking for a list of elements matching {}".format(self.describe()))
+        for finder in self.finder.finders:
+            try:
+                retval.extend(wd_browser.find_elements(finder[0], finder[1]))
+            except WebDriverException:
+                pass
+        if log:
+            self.logger.info("Found {} elements matching {}".format(len(retval), self.describe()))
+        return retval
 
     def find_element_matching(self, wd_browser, timeout, log=True):
         """
@@ -277,7 +299,12 @@ class WebElementLocator:
                 time.sleep(.25)
 
     def describe(self):
-        """Describe the current locator in plain english.  Used for logging."""
+        """
+        Describe the current locator in plain english.  Used for logging.
+
+        :return: description of element locator including name and how it is looking for it
+        :rtype: str
+        """
         return self.description
 
 class Browser:
@@ -361,7 +388,12 @@ class Browser:
             self.wd_instance = webdriver.Remote(remote_url, browser_type)
 
     def quit(self, log=True):
-        """Close the browser and quit the current session"""
+        """
+        Close the browser and quit the current session
+
+        :return: this instance for chaining of methods
+        :rtype: :class:`.Browser`
+        """
         if log:
             self.logger.info("Calling quit on browser instance.")
         self.wd_instance.quit()
@@ -379,6 +411,15 @@ class Browser:
         Wait for a page class (container) to be present.
         This will cause that the page's *is_current_page* method to be called until it returns true or a timeout
         is reached.
+
+        :param page: The page class (container) to wait for it's is_current_page to return True
+        :type page: :class:`.Container`
+        :param timeout: the max time (in seconds) to wait before giving up on the page existing
+        :type timeout: int or float (use float for sub-second precision)
+        :param log: Should the activities of this method be logged, default is True
+        :type log: bool
+        :return: this instance for chaining of methods
+        :rtype: :class:`.Browser`
         """
         # create an instance of the page
         page_instance = page()
@@ -408,8 +449,8 @@ class Browser:
         Check to see if an element exists on a page.  You can control how long to wait, and if the method should do
         any logging.  If you specify 0 for the timeout, the framework will only look for the element once.
 
-        :param locator: the locator to look for
-        :type locator: WebElementLocator
+        :param locator: the locator to look for (usually defined on a Page class)
+        :type locator: :class:`.WebElementLocator`
         :param timeout: The amount of time (in seconds) to look before returning False
         :type timeout: int or float
         :param log: Whether or not to log details of the look for the element (default is True)
@@ -425,14 +466,14 @@ class Browser:
         """
         Click on an element using the mouse.
 
-        :param locator: the locator that specifies which element to click on
-        :type locator: WebElementLocator
+        :param locator: the locator that specifies which element to click on (usually defined on a Page class)
+        :type locator: :class:`.WebElementLocator`
         :param timeout: The amount of time (in seconds) to look before throwing a not found exception
         :type timeout: int or float (float for sub-second precision)
         :param log: Whether or not to log details of the look for the element (default is True)
         :type log: bool
         :return: The reference to this Browser instance.
-        :rtype: Browser
+        :rtype: :class:`.Browser`
         """
         if timeout is None:
             timeout = self.default_timeout
@@ -448,14 +489,14 @@ class Browser:
         """
         Click on an element using the mouse, then send keys to it.  Mostly used for input elements of type text.
 
-        :param locator: the locator that specifies which element to click on and type in
-        :type locator: WebElementLocator
+        :param locator: the locator that specifies which element to click on and type in (usually defined on a Page class)
+        :type locator: :class:`.WebElementLocator`
         :param timeout: The amount of time (in seconds) to look before throwing a not found exception
         :type timeout: int or float (float for sub-second precision)
         :param log: Whether or not to log details of the look for the element (default is True)
         :type log: bool
         :return: The reference to this Browser instance.
-        :rtype: Browser
+        :rtype: :class:`.Browser`
         """
         if timeout is None:
             timeout = self.default_timeout
@@ -481,8 +522,6 @@ class Browser:
         element = self.wd_instance.find_element_by_tag_name("html")
         if element is not None:
             return element.text
-
-
 
 
 class Container:
