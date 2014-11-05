@@ -222,17 +222,15 @@ class WebElementLocator:
     See :doc:`locators`
     """
 
-    def __init__(self, name, finder, parent=None):
+    def __init__(self, name, finder):
         # id=None, xpath=None, link_text=None, partial_link_text=None, name=None, href=None,
         # tag_name=None, class_name=None, css_selector=None):
         self.name = name
         self.finder = finder
         self.logger = logging.getLogger("slickwd.WebElementLocator")
-        self.parent = parent
-        if parent is None:
-            self.description = "{} found by {}".format(name, finder.describe())
-        else:
-            self.description = "{} on page {} found by {}".format(name, self.get_page_name(), finder.describe())
+        self.parent = None
+        self.parent_initialized = False
+        self.description = "{} found by {}".format(name, finder.describe())
 
     def get_page_name(self):
         if self.parent is not None:
@@ -313,6 +311,9 @@ class WebElementLocator:
         :return: description of element locator including name and how it is looking for it
         :rtype: str
         """
+        if self.parent is not None and self.parent_initialized is False:
+            self.description = "{} on page {} found by {}".format(self.name, self.parent.get_name(), self.finder.describe())
+            self.parent_initialized = True
         return self.description
 
 class Browser:
@@ -441,7 +442,7 @@ class Browser:
             timeout = self.default_timeout
 
         if log:
-            self.logger.debug("Waiting for up to {:.2f} seconds for page {} to be the current page.".format(float(timeout), page_instance.name()))
+            self.logger.debug("Waiting for up to {:.2f} seconds for page {} to be the current page.".format(float(timeout), page_instance.get_name()))
 
         timer = Timer(timeout)
         while not timer.is_past_timeout():
@@ -451,9 +452,9 @@ class Browser:
         else:
             # The timer.is_past_timeout() returned true and that kicked us out of the loop
             if log:
-                self.logger.warn("Waited {:.2f} seconds for page {} to exist and it never returned true from is_current_page.".format(float(timeout), page_instance.name()))
-            raise WebDriverException("Waited {:.2f} seconds for page {} to exist and it never returned true from is_current_page.".format(float(timeout), page_instance.name()))
-        self.logger.debug("Found page {} after {:.2f} seconds.".format(page_instance.name(), time.time() - timer.start))
+                self.logger.warn("Waited {:.2f} seconds for page {} to exist and it never returned true from is_current_page.".format(float(timeout), page_instance.get_name()))
+            raise WebDriverException("Waited {:.2f} seconds for page {} to exist and it never returned true from is_current_page.".format(float(timeout), page_instance.get_name()))
+        self.logger.debug("Found page {} after {:.2f} seconds.".format(page_instance.get_name(), time.time() - timer.start))
         return self
 
     def exists(self, locator, timeout=None, log=True):
@@ -542,19 +543,11 @@ class Container:
     shared definition.
     """
 
-    def __init__(self, name=None, parent=None):
-        self.container_name = name
-        self.parent = parent
-
     def get_name(self):
-        if self.parent is None:
-            return self.container_name
-        else:
+        if hasattr(self, "parent") and hasattr(self, "container_name") and self.parent is not None:
             return "{}.{}".format(self.parent.get_name(), self.container_name)
-
-    def name(self):
-        if self.container_name is not None:
-            return self.get_name()
+        elif hasattr(self, "container_name"):
+            return self.container_name
         else:
             name = self.__class__.__name__
             if name.endswith("Page"):
@@ -563,6 +556,16 @@ class Container:
 
     def is_current_page(self, browser):
         raise NotImplementedError("is_current_page was not implemented on class: {}".format(self.__class__.__name__))
+
+    def __setattr__(self, key, value):
+        # this magic is for naming and setting of parent -> child relationships
+        if key != "parent":
+            if isinstance(value, Container):
+                value.parent = self
+                value.container_name = key
+            if isinstance(value, WebElementLocator):
+                value.parent = self
+        return super(Container, self).__setattr__(key, value)
 
 
 
