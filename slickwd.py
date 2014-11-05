@@ -222,13 +222,21 @@ class WebElementLocator:
     See :doc:`locators`
     """
 
-    def __init__(self, name, finder):
+    def __init__(self, name, finder, parent=None):
         # id=None, xpath=None, link_text=None, partial_link_text=None, name=None, href=None,
         # tag_name=None, class_name=None, css_selector=None):
         self.name = name
         self.finder = finder
-        self.description = "{} found by {}".format(name, finder.describe())
         self.logger = logging.getLogger("slickwd.WebElementLocator")
+        self.parent = parent
+        if parent is None:
+            self.description = "{} found by {}".format(name, finder.describe())
+        else:
+            self.description = "{} on page {} found by {}".format(name, self.get_page_name(), finder.describe())
+
+    def get_page_name(self):
+        if self.parent is not None:
+            return self.parent.get_name()
 
     def find_all_elements_matching(self, wd_browser, log=True):
         """
@@ -422,7 +430,11 @@ class Browser:
         :rtype: :class:`.Browser`
         """
         # create an instance of the page
-        page_instance = page()
+        page_instance = None
+        if isinstance(page, Container):
+            page_instance = page
+        else:
+            page_instance = page()
         assert isinstance(page_instance, Container)
 
         if timeout is None:
@@ -530,11 +542,24 @@ class Container:
     shared definition.
     """
 
+    def __init__(self, name=None, parent=None):
+        self.container_name = name
+        self.parent = parent
+
+    def get_name(self):
+        if self.parent is None:
+            return self.container_name
+        else:
+            return "{}.{}".format(self.parent.get_name(), self.container_name)
+
     def name(self):
-        name = self.__class__.__name__
-        if name.endswith("Page"):
-            name = name[:-4]
-        return name
+        if self.container_name is not None:
+            return self.get_name()
+        else:
+            name = self.__class__.__name__
+            if name.endswith("Page"):
+                name = name[:-4]
+            return name
 
     def is_current_page(self, browser):
         raise NotImplementedError("is_current_page was not implemented on class: {}".format(self.__class__.__name__))
