@@ -265,3 +265,56 @@ Here is an example of the output you would get from the logs::
 
 Notice each element knows what page it is on in the code, and each page knows it's *parent* in the hierarchy.  This
 can help greatly when comparing code and logs, as well as navigating code.
+
+I'm going to go backwards through the code.  First let's look at the test.  The test is almost the same as in the
+single page example.  The difference comes in the page and elements.  Notice how each of the page classes starts with
+*Google.*.  This is the root page in the page class hierarchy.  The advantage (as was said above) comes when using an
+IDE.  Take a look at the following screenshot taken while writing the test:
+
+|code-completion|
+
+This allows the people writing the tests to effectively browse through the hierarchy of available elements, reducing
+the possibility of duplication of definitions.
+
+The page classes are a little bit different than explained in the simple example.  Let's go through the differences::
+
+    class GoogleRootContainer(Container):
+        """
+        Root google page.  An instance is supposed to be created called Google.
+        """
+
+        def __init__(self, name):
+            self.container_name = name
+            self.Home = GoogleHomePage()
+            self.SearchResults = GoogleSearchResultsPage()
+
+This page class is entirely new.  In our page class hierarchy this is the root.  It is responsible for creating
+instances of all the other nested page classes.  Notice that they are created in the *__init__* instead of statically
+on the page.  There is one other thing different about this page class.  It accepts a name parameter.  One of the
+advantages of page classes is that each element and page knows it's name as far as the hierarchy is concerned.  But
+in order for that to work you have to name the root node.
+
+Something you don't even realize that is happening here is that when the constructor to *GoogleHomePage* is called and
+assigned to the *Home* attribute name on the current instance, underneath the *Container* class sets up the parent-child
+relationship and sets the known name for the *GoogleHomePage* instance to *Home*.  This is why you only have to set the
+name of the root node of your hierarchy.
+
+The other page classes look similar, except the :class:`slickwd.WebElementLocator` instances are now instantiated
+inside the page class's *__init__*.
+
+
+I only show 2 levels of page class here, but you can nest them as deep as you want (mostly).  Recursion is used for
+getting the names of pages, but if you hit that limit you will have an extremely deep hierarchy.
+
+The only other line that might look different is::
+
+    Google = GoogleRootContainer("Google")
+
+This line allows for an importable name called Google that is a singleton instance of the class GoogleRootContainer.
+This could have been instantiated in a setup, if for instance you needed to pass configuration data to the page class
+hierarchy.  One example of needing to do this is if you had different locators for different versions of a product.
+You could store that version in the page class hierarchy in order to decide which locator to add to the page class.
+
+
+.. |code-completion| image:: _static/code-completion.png
+
