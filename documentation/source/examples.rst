@@ -46,6 +46,7 @@ and searches for *Slick Test Manager* and ensures a particular page is in the re
         global browser
         if browser is not None:
             browser.quit()
+            browser = None
     
     @with_setup(s, cleanup)
     def test_google_search():
@@ -58,7 +59,104 @@ and searches for *Slick Test Manager* and ensures a particular page is in the re
         assert_regexp_matches(browser.get_page_text(), '.*SlickQA:.*')
 
 This may seem like a lot, but normally the :doc:`page-classes` would be in a different module that you would import.
-Let's start with the page classes and explain what they are here.
+Let's start with the page classes and explain what they are here::
+
+    class GoogleSearchPage(Container):
+        Search_Query_Text_Field = WebElementLocator("Search Box", Find.by_name("q"))
+        Search_Button = WebElementLocator("Search Button", Find.by_name("btnG"))
+
+        def is_current_page(self, browser):
+            return browser.exists(GoogleSearchPage.Search_Query_Text_Field, timeout=0, log=False)
+
+In this page class, there are 2 *locators*.  The locators are the elements that are used in tests.  Page classes
+mostly serve as a grouping of WebElementLocators.  The first locator is named *Search Box* and it looks for an element
+anywhere on the page with the *name="q"* attribute on it.  In this case it's an input box of type text.  Notice I didn't
+have to supply all that info, just the part that uniquely identifies the element so that webdriver can get a hold of it.
+
+The second element is very similar, it's called "Search Button" and it is identified by it's name attribute as well.
+
+The page class is a sub class of :class:`slickwd.Container`.  In terms of this framework that is special because it
+allows the page to include a method to *detect* itself.  The *is_current_page* method needs to return a boolean (true
+or false) and should execute very quickly.  This method is what allows for the test to call *wait_for_page* on this
+page.  We will see that later on in the test.  The only things that may look out of place on the *is_current_page*
+method is the last 2 parameters that you don't normally pass in.  These tell the framework to only check for the
+element 1 time (*timeout=0* parameter), and not to log it (*log=False* parameter).  The logging is there because
+logging each call to is_current_page in this context could be redundant noise in the logs.  By setting *log=False* in
+the page class's call to *browser.exists(...)* we make sure that only the tests explicit calls to browser actions
+are logged.
+
+I won't cover line by line the second page class as it is almost the same as the first.
+
+The setup and cleanup methods are worth making a few notes about::
+
+    browser = None
+
+
+    def s():
+        global browser
+        if browser is not None:
+            browser.quit()
+        browser = Browser(BrowserType.FIREFOX)
+
+    def cleanup():
+        global browser
+        if browser is not None:
+            browser.quit()
+            browser = None
+
+In this part of the example we have first a global variable (or at least module level variable).  This allows us
+to use this variable in all the test functions.  I could have used a class instead and made this an instance variable
+but I used module level variables (with functions) instead.
+
+Notice how the setup method is named *s()*.  This is because if I had named it setup, nose would have treated it as a
+module level setup function, and it would have been called twice on the first test.
+
+Notice how the setup quits the browser if it's running.  To make tests more robust they should be able to handle any
+scenario of bad or unworking cleanup.  I should have also put the quit in a try block, but I'll leave that as an
+exercise of the reader.
+
+Using a setup and cleanup to start and stop the browser is a good idea mostly because it centralizes the logic of
+launching the browser.  In this case the browser is hard coded, but it's actually recommended to make that a
+configuration parameter.  You can do that using environment variables or a configuration file.  Once again that is
+left to the reader to implement.
+
+Finally the test::
+
+    @with_setup(s, cleanup)
+    def test_google_search():
+        global browser
+        browser.go_to('http://www.google.com')
+        browser.wait_for_page(GoogleSearchPage)
+        browser.click_and_type(GoogleSearchPage.Search_Query_Text_Field, "Slick Test Manager")
+        browser.click(GoogleSearchPage.Search_Button)
+        browser.wait_for_page(SearchResultsPage)
+        assert_regexp_matches(browser.get_page_text(), '.*SlickQA:.*')
+
+The test is marked with the setup and cleanup functions.  Then notice how there is very little busy work for the test.
+This test should be clear.  The only real thing to note is the final line that does the assertion.  A better way would
+have been to look at a specific link text, but that would have been more work without a major benefit, and it may have
+made the test more fragile.
+
+Finally let's look at the logging output of this test, as that is a feature of the framework::
+
+    slickwd.Browser: DEBUG: New browser instance requested with browser_type='FIREFOX' and remote_url=None
+    slickwd.Browser: INFO: Creating a new browser (locally connected) of type firefox
+    slickwd.Browser: DEBUG: Navigating to url 'http://www.google.com'.
+    slickwd.Browser: DEBUG: Waiting for up to 30.00 seconds for page GoogleSearch to be the current page.
+    slickwd.Browser: DEBUG: Found page GoogleSearch after 0.24 seconds.
+    slickwd.WebElementLocator: DEBUG: Waiting for up to 30.00 seconds for element Search Box found by name "q" to be available.
+    slickwd.WebElementLocator: INFO: Found element Search Box using locator property name "q" after 0.00 seconds.
+    slickwd.Browser: DEBUG: Clicking on element Search Box found by name "q"
+    slickwd.Browser: DEBUG: Typing "Slick Test Manager" into element Search Box found by name "q"
+    slickwd.WebElementLocator: DEBUG: Waiting for up to 30.00 seconds for element Search Button found by name "btnG" to be available.
+    slickwd.WebElementLocator: INFO: Found element Search Button using locator property name "btnG" after 0.01 seconds.
+    slickwd.Browser: DEBUG: Clicking on element Search Button found by name "btnG"
+    slickwd.Browser: DEBUG: Waiting for up to 30.00 seconds for page SearchResults to be the current page.
+    slickwd.Browser: DEBUG: Found page SearchResults after 3.60 seconds.
+    slickwd.Browser: INFO: Calling quit on browser instance.
+
+Notice how even thought the test doesn't explicitly make any logging requests, we can see what the test did, how it
+did it, and how long it took to do it.
 
 
 Nested Page Class Example

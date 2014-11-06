@@ -1,11 +1,11 @@
-Getting Started
-===============
+Overview
+========
 
 .. toctree::
    :maxdepth: 2
 
-Web Testing Overview
---------------------
+Web Testing in General
+----------------------
 
 Web testing is quite simple.  This is mostly because of open standards, and excellent tools (such as 
 `Selenium <http://seleniumhq.org>`_ on which this project is based).  Because it is so simple, it is
