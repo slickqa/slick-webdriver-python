@@ -536,6 +536,54 @@ class Browser:
         if element is not None:
             return element.text
 
+    def get_text(self, locator, timeout=None, log=True):
+        """
+        Get the text of an element on the page.
+
+        :param locator: the locator that specifies which element to get the text of
+        :type locator: :class:`.WebElementLocator`
+        :param timeout: The amount of time (in seconds) to look before throwing a not found exception
+        :type timeout: int or float (float for sub-second precision)
+        :param log: Whether or not to log details of the look for the element (default is True)
+        :type log: bool
+        :return: the text of the element on success, exception raised on inability to find the element
+        :rtype: str
+        """
+        if timeout is None:
+            timeout = self.default_timeout
+        element = locator.find_element_matching(self.wd_instance, timeout, log)
+        if element is None:
+            raise WebDriverException("Unable to find element {} after waiting for {:.2f} seconds".format(locator.describe(), float(timeout)))
+        text = element.text
+        if log:
+            self.logger.debug("Found element {}, returning text: {}".format(locator.describe(), text))
+        return text
+
+    def get_attribute_value(self, locator, attribute_name, timeout=None, log=True):
+        """
+        Get the value of an html element's attribute.
+
+        :param locator: the locator that specifies which element to get the attribute value of
+        :type locator: :class:`.WebElementLocator`
+        :param attribute_name: the name of the attribute to get
+        :type attribute_name: str
+        :param timeout: The amount of time (in seconds) to look before throwing a not found exception
+        :type timeout: int or float (float for sub-second precision)
+        :param log: Whether or not to log details of the look for the element (default is True)
+        :type log: bool
+        :return: the text of the element on success, exception raised on inability to find the element
+        :rtype: str
+        """
+        if timeout is None:
+            timeout = self.default_timeout
+        element = locator.find_element_matching(self.wd_instance, timeout, log)
+        if element is None:
+            raise WebDriverException("Unable to find element {} after waiting for {:.2f} seconds".format(locator.describe(), float(timeout)))
+        value = element.get_attribute(attribute_name)
+        if log:
+            self.logger.debug("Found element {}, attribute {} has value: {}".format(locator.describe(), attribute_name, value))
+        return value
+
 
 class Container:
     """
