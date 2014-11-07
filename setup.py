@@ -22,7 +22,7 @@ setup(
     name="slick-webdriver",
     description="A webdriver wrapper api for the slickqa project (and anyone else who wants it).",
     version="1.0" + open("build.txt").read(),
-    long_description=open('README.md').read(),
+    long_description=open('README.rst').read(),
     py_modules=['slickwd',],
     package_data={'': ['*.txt', '*.rst', '*.html']},
     include_package_data=True,
