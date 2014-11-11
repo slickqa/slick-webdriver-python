@@ -490,12 +490,21 @@ class Browser:
         """
         if timeout is None:
             timeout = self.default_timeout
+        timer = Timer(timeout)
         element = locator.find_element_matching(self.wd_instance, timeout, log)
         if element is None:
             raise WebDriverException("Unable to find element {} after waiting for {:.2f} seconds".format(locator.describe(), float(timeout)))
+        while not timer.is_past_timeout():
+            if element.is_displayed() and element.is_enabled():
+                break
         if log:
             self.logger.debug("Clicking on element {}".format(locator.describe()))
-        element.click()
+
+        #This beauty comes courtesy of comment #85 on https://code.google.com/p/selenium/issues/detail?id=2766
+        if (isinstance(self.browser_type, BrowserType) and self.browser_type is BrowserType.CHROME) or (isinstance(self.browser_type, dict) and self.browser_type['browserName'] == 'chrome'):
+            self.wd_instance.execute_script("arguments[0].click();", element)
+        else:
+            element.click()
         return self
 
     def click_and_type(self, locator, keys, timeout=None, log=True):
@@ -513,12 +522,21 @@ class Browser:
         """
         if timeout is None:
             timeout = self.default_timeout
+        timer = Timer(timeout)
         element = locator.find_element_matching(self.wd_instance, timeout, log)
         if element is None:
             raise WebDriverException("Unable to find element {} after waiting for {:.2f} seconds".format(locator.describe(), float(timeout)))
+        while not timer.is_past_timeout():
+            if element.is_displayed() and element.is_enabled():
+                break
         if log:
             self.logger.debug("Clicking on element {}".format(locator.describe()))
-        element.click()
+
+        #This beauty comes courtesy of comment #85 on https://code.google.com/p/selenium/issues/detail?id=2766
+        if (isinstance(self.browser_type, BrowserType) and self.browser_type is BrowserType.CHROME) or (isinstance(self.browser_type, dict) and self.browser_type['browserName'] == 'chrome'):
+            self.wd_instance.execute_script("arguments[0].click();", element)
+        else:
+            element.click()
         if log:
             self.logger.debug("Typing \"{}\" into element {}".format(keys, locator.describe()))
         element.send_keys(keys)
