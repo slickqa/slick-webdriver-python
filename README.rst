@@ -1,4 +1,5 @@
 Website at: http://www.slickqa.com/webdriver/python
+Extensive documentation at: http://www.slickqa.com/webdriver/python/docs
 
 Webdriver wrapper for SlickQA Project
 =====================================
