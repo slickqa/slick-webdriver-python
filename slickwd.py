@@ -584,6 +584,50 @@ class Browser:
             self.logger.debug("Found element {}, attribute {} has value: {}".format(locator.describe(), attribute_name, value))
         return value
 
+    def first_page_found(self, page_classes, timeout=None, log=True):
+        """
+        Look for the first page class that returns true, and return it.  This is useful when you are trying to detect
+        if a particular flow is happening.  Rather than waiting for one page class, this goes through a list each time
+        and as soon as one returns true, it returns that element.
+
+        :param page_classes: The list of page classes or page class instances.  Whatever you pass in here is what will
+                             be returned if found.
+        :param timeout: The amount of time (in seconds) to look before throwing a not found exception
+        :type timeout: int or float (float for sub-second precision)
+        :param log: Whether or not to log details of the look for the element (default is True)
+        :type log: bool
+        :return: A page class from the list passed in (if found), None otherwise
+        """
+        page_list = []
+        page_names = []
+        for page in page_classes:
+            page_list_val = {}
+            page_list_val['retval'] = page
+            if isinstance(page, Container):
+                page_list_val['instance'] = page
+            else:
+                page_list_val['instance'] = page()
+            page_names.append(page_list_val['instance'].get_name())
+            page_list.append(page_list_val)
+        if log:
+            self.logger.debug("Waiting for one of the pages [{}] to be found.".format(','.join(page_names)))
+        if timeout is None:
+            timeout = self.default_timeout
+        timer = Timer(timeout)
+        while not timer.is_past_timeout():
+            for page in page_list:
+                if page['instance'].is_current_page(self):
+                    if log:
+                        self.logger.info("Found page {} after {:.2f} seconds.".format(page['instance'].get_name(), time.time() - timer.start))
+                    return page['retval']
+            time.sleep(0.25) # sleep a quarter of a second
+        else:
+            # The timer.is_past_timeout() returned true and that kicked us out of the loop
+            if log:
+                self.logger.warn("Waited {:.2f} seconds for one of the pages [{}] to return true from is_current_page, but that never happend.".format(float(timeout), ','.join(page_names)))
+            return None
+
+
 
 class Container:
     """
@@ -592,6 +636,12 @@ class Container:
     """
 
     def get_name(self):
+        """
+        Get the full name of this page.  If using nested :doc:`page-classes` this will get the full *dotted* name
+        of the page class.
+
+        :return: A string containing the best guess at the page class name.
+        """
         if hasattr(self, "parent") and hasattr(self, "container_name") and self.parent is not None:
             return "{}.{}".format(self.parent.get_name(), self.container_name)
         elif hasattr(self, "container_name"):
@@ -603,6 +653,15 @@ class Container:
             return name
 
     def is_current_page(self, browser):
+        """
+        You should override this method in a subclass of Container.  This method is used to see if what is in the
+        browser currently matches one or more elements of this class.  This method should be quick (timeout 0 for all
+        your calls).  It may get called a lot, so you may want to turn off logging for any browser methods called
+        (log=False parameter).
+
+        :param browser: A :class:`.Browser` instance to use in detecting if this is the current page.
+        :return: True if the current page matches what is in the browser, False otherwise.
+        """
         raise NotImplementedError("is_current_page was not implemented on class: {}".format(self.__class__.__name__))
 
     def __setattr__(self, key, value):
