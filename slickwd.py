@@ -497,6 +497,8 @@ class Browser:
         while not timer.is_past_timeout():
             if element.is_displayed() and element.is_enabled():
                 break
+            time.sleep(.25)
+            element = locator.find_element_matching(self.wd_instance, timeout, log)
         if log:
             self.logger.debug("Clicking on element {}".format(locator.describe()))
 
@@ -529,6 +531,8 @@ class Browser:
         while not timer.is_past_timeout():
             if element.is_displayed() and element.is_enabled():
                 break
+            time.sleep(.25)
+            element = locator.find_element_matching(self.wd_instance, timeout, log)
         if log:
             self.logger.debug("Clicking on element {}".format(locator.describe()))
 
