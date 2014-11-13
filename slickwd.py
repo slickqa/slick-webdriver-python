@@ -8,6 +8,7 @@ from enum import Enum
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import WebDriverException
+from selenium.webdriver.support.select import Select
 from selenium import webdriver
 import time
 
@@ -695,18 +696,12 @@ class Browser:
         """
         if log:
             self.logger.debug('Selecting option by text "{}" from select element {}'.format(option_text, locator.describe()))
-        element = self._internal_click(locator, timeout, log)
-        # notice no wait for "clickable" this could end up causing a problem
-        options = element.find_elements_by_tag_name("option")
-        for option in options:
-            if option_text in option.text:
-                if log:
-                    self.logger.debug('Found option with text "{}", clicking on it.   Full option text is: {}'.format(option_text, option.text))
-                self._internal_raw_click(option)
-                if log:
-                    self.logger.debug('Option with text "{}" of select element {} is {}'.format(option.text, locator.describe(), option.get_attribute("selected")))
-                return self
-        raise WebDriverException('Unable to find option with text "{}" in select element {}.'.format(option_text, locator.describe()))
+        if timeout is None:
+            timeout = self.default_timeout
+        select = Select(locator.find_element_matching(self.wd_instance, timeout, log))
+        select.select_by_visible_text(option_text)
+        return self
+
 
 
 class Container:
