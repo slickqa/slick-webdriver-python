@@ -475,6 +475,41 @@ class Browser:
             timeout = self.default_timeout
         return locator.find_element_matching(self.wd_instance, timeout, log) is not None
 
+    def _internal_raw_click(self, element):
+        """
+        A private internal method for
+        """
+        #This beauty comes courtesy of comment #85 on https://code.google.com/p/selenium/issues/detail?id=2766
+        if (isinstance(self.browser_type, BrowserType) and self.browser_type is BrowserType.CHROME) or (isinstance(self.browser_type, dict) and self.browser_type['browserName'] == 'chrome'):
+            self.wd_instance.execute_script("arguments[0].click();", element)
+        else:
+            element.click()
+
+    def _internal_click(self, locator, timeout, log):
+        """
+        A private internal method for finding an element and clicking it.  The raw element is returned.
+        """
+        if timeout is None:
+            timeout = self.default_timeout
+        timer = Timer(timeout)
+        element = locator.find_element_matching(self.wd_instance, timeout, log)
+        if element is None:
+            raise WebDriverException("Unable to find element {} after waiting for {:.2f} seconds".format(locator.describe(), float(timeout)))
+        while not timer.is_past_timeout():
+            if element.is_displayed() and element.is_enabled():
+                break
+            try:
+                self.wd_instance.execute_script("arguments[0].scrollIntoView(true);", element)
+            except:
+                pass
+            time.sleep(.25)
+            element = locator.find_element_matching(self.wd_instance, timeout, log)
+        if log:
+            self.logger.debug("Clicking on element {}".format(locator.describe()))
+
+        self._internal_raw_click(element)
+        return element
+
     def click(self, locator, timeout=None, log=True):
         """
         Click on an element using the mouse.
@@ -488,25 +523,7 @@ class Browser:
         :return: The reference to this Browser instance.
         :rtype: :class:`.Browser`
         """
-        if timeout is None:
-            timeout = self.default_timeout
-        timer = Timer(timeout)
-        element = locator.find_element_matching(self.wd_instance, timeout, log)
-        if element is None:
-            raise WebDriverException("Unable to find element {} after waiting for {:.2f} seconds".format(locator.describe(), float(timeout)))
-        while not timer.is_past_timeout():
-            if element.is_displayed() and element.is_enabled():
-                break
-            time.sleep(.25)
-            element = locator.find_element_matching(self.wd_instance, timeout, log)
-        if log:
-            self.logger.debug("Clicking on element {}".format(locator.describe()))
-
-        #This beauty comes courtesy of comment #85 on https://code.google.com/p/selenium/issues/detail?id=2766
-        if (isinstance(self.browser_type, BrowserType) and self.browser_type is BrowserType.CHROME) or (isinstance(self.browser_type, dict) and self.browser_type['browserName'] == 'chrome'):
-            self.wd_instance.execute_script("arguments[0].click();", element)
-        else:
-            element.click()
+        self._internal_click(locator, timeout, log)
         return self
 
     def click_and_type(self, locator, keys, timeout=None, log=True):
@@ -522,27 +539,7 @@ class Browser:
         :return: The reference to this Browser instance.
         :rtype: :class:`.Browser`
         """
-        if timeout is None:
-            timeout = self.default_timeout
-        timer = Timer(timeout)
-        element = locator.find_element_matching(self.wd_instance, timeout, log)
-        if element is None:
-            raise WebDriverException("Unable to find element {} after waiting for {:.2f} seconds".format(locator.describe(), float(timeout)))
-        while not timer.is_past_timeout():
-            if element.is_displayed() and element.is_enabled():
-                break
-            time.sleep(.25)
-            element = locator.find_element_matching(self.wd_instance, timeout, log)
-        if log:
-            self.logger.debug("Clicking on element {}".format(locator.describe()))
-
-        #This beauty comes courtesy of comment #85 on https://code.google.com/p/selenium/issues/detail?id=2766
-        if (isinstance(self.browser_type, BrowserType) and self.browser_type is BrowserType.CHROME) or (isinstance(self.browser_type, dict) and self.browser_type['browserName'] == 'chrome'):
-            self.wd_instance.execute_script("arguments[0].click();", element)
-        else:
-            element.click()
-        if log:
-            self.logger.debug("Typing \"{}\" into element {}".format(keys, locator.describe()))
+        element = self._internal_click(locator, timeout, log)
         element.send_keys(keys)
         return self
 
@@ -649,6 +646,67 @@ class Browser:
                 self.logger.warn("Waited {:.2f} seconds for one of the pages [{}] to return true from is_current_page, but that never happend.".format(float(timeout), ','.join(page_names)))
             return None
 
+    def get_url(self, log=True):
+        """
+        Get the current url of the web page.
+
+        :param log: Whether or not to log
+        :type log: bool
+        :return: The URL as a string (how else would you represent it?)
+        :rtype: str
+        """
+        if log:
+            self.logger.debug("Getting current URL of browser.")
+        retval = self.wd_instance.current_url
+        if log:
+            self.logger.debug("Current URL of browser is {}".format(retval))
+        return retval
+
+    def get_title(self, log=True):
+        """
+        Get the current title of the page.
+
+        :param log: Whether or not to log
+        :type log: bool
+        :return: the title of the page
+        :rtype: str
+        """
+        if log:
+            self.logger.debug("Getting title of current page.")
+        retval = self.wd_instance.title
+        if log:
+            self.logger.debug("Title of current page is {}".format(retval))
+        return retval
+
+    def select_option_by_text(self, locator, option_text, timeout=None, log=True):
+        """
+        Select an option of a select element by partial or complete text.
+
+        :param locator: the locator that specifies how to find the select element
+        :type locator: :class:`.WebElementLocator`
+        :param option_text: The text of the option to select
+        :type option_text: str
+        :param timeout: The amount of time (in seconds) to look before throwing a not found exception
+        :type timeout: int or float (float for sub-second precision)
+        :param log: Whether or not to log details of the look for the element (default is True)
+        :type log: bool
+        :return: The reference to this Browser instance.
+        :rtype: :class:`.Browser`
+        """
+        if log:
+            self.logger.debug('Selecting option by text "{}" from select element {}'.format(option_text, locator.describe()))
+        element = self._internal_click(locator, timeout, log)
+        # notice no wait for "clickable" this could end up causing a problem
+        options = element.find_elements_by_tag_name("option")
+        for option in options:
+            if option.text.contains(option_text):
+                if log:
+                    self.logger.debug('Found option with text "{}", clicking on it.   Full option text is: {}'.format(option_text, option.text))
+                self._internal_raw_click(option)
+                if log:
+                    self.logger.debug('Option with text "{}" of select element {} is {}'.format(option.text, locator.describe(), option.get_attribute("selected")))
+                return self
+        raise WebDriverException('Unable to find option with text "{}" in select element {}.'.format(option_text, locator.describe()))
 
 
 class Container:
