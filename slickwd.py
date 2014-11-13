@@ -699,7 +699,7 @@ class Browser:
         # notice no wait for "clickable" this could end up causing a problem
         options = element.find_elements_by_tag_name("option")
         for option in options:
-            if option.text.contains(option_text):
+            if option_text in option.text:
                 if log:
                     self.logger.debug('Found option with text "{}", clicking on it.   Full option text is: {}'.format(option_text, option.text))
                 self._internal_raw_click(option)
