@@ -511,6 +511,45 @@ class Browser:
         self._internal_raw_click(element)
         return element
 
+    def _internal_wait_for_changes_to_stop(self, locator, locate_timeout=None, change_timeout=5, log=True):
+        """
+        Internal method, do not call unless you know what you are doing.  This method waits for changes to an element
+        (number of sub elements, text property) to stop changing for a period of time.
+
+        :param locator:
+        :param locate_timeout:
+        :param change_timeout:
+        :param log:
+        :return:
+        """
+        if locate_timeout is None:
+            locate_timeout = self.default_timeout
+        element = locator.find_element_matching(self.wd_instance, locate_timeout, log)
+        if log:
+            self.logger.debug("Performing checks to make sure that {} is done changing.".format(locator.describe()))
+        last_number_of_sub_elements = len(element.find_elements_by_xpath('.//*'))
+        last_text = element.text
+        timer = Timer(change_timeout)
+        number_of_times_with_no_changes = 0
+        while not timer.is_past_timeout():
+            time.sleep(.1)
+            element = locator.find_element_matching(self.wd_instance, self.default_timeout, False)
+            current_number_of_sub_elements = len(element.find_elements_by_xpath('.//*'))
+            current_text = element.text
+            if current_number_of_sub_elements == last_number_of_sub_elements and current_text == last_text:
+                number_of_times_with_no_changes += 1
+                if number_of_times_with_no_changes > 2:
+                    break
+            else:
+                number_of_times_with_no_changes = 0
+            last_number_of_sub_elements = current_number_of_sub_elements
+            last_text = current_text
+        else:
+            if log:
+                self.logger.warn("Waited 5 seconds for {} to stop changing, but it seems to still be changing".format(locator.describe()))
+        return element
+
+
     def click(self, locator, timeout=None, log=True):
         """
         Click on an element using the mouse.
@@ -696,9 +735,8 @@ class Browser:
         """
         if log:
             self.logger.debug('Selecting option by text "{}" from select element {}'.format(option_text, locator.describe()))
-        if timeout is None:
-            timeout = self.default_timeout
-        select = Select(locator.find_element_matching(self.wd_instance, timeout, log))
+        element = self._internal_wait_for_changes_to_stop(locator, timeout, log)
+        select = Select(element)
         select.select_by_visible_text(option_text)
         return self
 
