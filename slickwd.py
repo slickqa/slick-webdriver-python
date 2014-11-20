@@ -10,6 +10,8 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.support.select import Select
 from selenium import webdriver
+
+from pydispatch import dispatcher
 import time
 
 
@@ -338,6 +340,8 @@ class Browser:
     For more examples, see :doc:`examples`.
     """
 
+    SIGNAL_BEFORE_CLICK="slickwd.Browser.signal-before-click"
+
     def __init__(self, browser_type, remote_url=None, default_timeout=30):
         """
         Create a new browser session.  The only required parameter *browser_type* can be
@@ -563,6 +567,7 @@ class Browser:
         :return: The reference to this Browser instance.
         :rtype: :class:`.Browser`
         """
+        dispatcher.send(signal=Browser.SIGNAL_BEFORE_CLICK, sender=self, locator=locator)
         self._internal_click(locator, timeout, log)
         return self
 
@@ -739,6 +744,12 @@ class Browser:
         select = Select(element)
         select.select_by_visible_text(option_text)
         return self
+
+    def screenshot_as_byte(self):
+        """
+        Take a screenshot of the browser, and return it as a png byte array.
+        """
+        return self.wd_instance.get_screenshot_as_png()
 
 
 
