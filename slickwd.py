@@ -490,7 +490,7 @@ class Browser:
         else:
             element.click()
 
-    def _internal_click(self, locator, timeout, log):
+    def _internal_click(self, locator, timeout, log, signal=False):
         """
         A private internal method for finding an element and clicking it.  The raw element is returned.
         """
@@ -511,6 +511,8 @@ class Browser:
             element = locator.find_element_matching(self.wd_instance, timeout, log)
         if log:
             self.logger.debug("Clicking on element {}".format(locator.describe()))
+        if signal:
+            dispatcher.send(signal=Browser.SIGNAL_BEFORE_CLICK, sender=self, locator=locator)
 
         self._internal_raw_click(element)
         return element
@@ -567,8 +569,7 @@ class Browser:
         :return: The reference to this Browser instance.
         :rtype: :class:`.Browser`
         """
-        dispatcher.send(signal=Browser.SIGNAL_BEFORE_CLICK, sender=self, locator=locator)
-        self._internal_click(locator, timeout, log)
+        self._internal_click(locator, timeout, log, signal=True)
         return self
 
     def click_and_type(self, locator, keys, timeout=None, log=True):
@@ -584,7 +585,7 @@ class Browser:
         :return: The reference to this Browser instance.
         :rtype: :class:`.Browser`
         """
-        element = self._internal_click(locator, timeout, log)
+        element = self._internal_click(locator, timeout, log, signal=True)
         element.send_keys(keys)
         return self
 
