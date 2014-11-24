@@ -225,6 +225,22 @@ class WebElementLocator:
     See :doc:`locators`
     """
 
+    WAIT_FOR_ANGULAR_JS="""
+    var rootSelector = ["[ng-app]","[data-ng-app]","body"];
+    var callback = arguments[arguments.length - 1];
+    var el = document.querySelector(rootSelector);
+    try {
+        if (angular.getTestability) {
+            angular.getTestability(el).whenStable(callback);
+        } else {
+            angular.element(el).injector().get('$browser').
+                    notifyWhenNoOutstandingRequests(callback);
+        }
+    } catch (e) {
+        callback(e);
+    }
+    """
+
     def __init__(self, name, finder):
         # id=None, xpath=None, link_text=None, partial_link_text=None, name=None, href=None,
         # tag_name=None, class_name=None, css_selector=None):
@@ -239,7 +255,7 @@ class WebElementLocator:
         if self.parent is not None:
             return self.parent.get_name()
 
-    def find_all_elements_matching(self, wd_browser, log=True):
+    def find_all_elements_matching(self, wd_browser, log=True, angular=False):
         """
         Find a list of elements that match a finder.  This method can be useful if you are
         :doc:`raw-webdriver` and need to select from and inspect a list of elements.
@@ -252,6 +268,8 @@ class WebElementLocator:
         :return: list of matching elements
         :rtype: list of web element
         """
+        if angular:
+            wd_browser.execute_async_script(WebElementLocator.WAIT_FOR_ANGULAR_JS)
         retval = []
         if log:
             self.logger.debug("Looking for a list of elements matching {}".format(self.describe()))
@@ -264,7 +282,7 @@ class WebElementLocator:
             self.logger.info("Found {} elements matching {}".format(len(retval), self.describe()))
         return retval
 
-    def find_element_matching(self, wd_browser, timeout, log=True):
+    def find_element_matching(self, wd_browser, timeout, log=True, angular=False):
         """
         Find a single element matching the finder(s) that make up this locator before a timeout is reached.
         This method is used internally by the framework when you call any action on a WebElementLocator, however
@@ -278,6 +296,8 @@ class WebElementLocator:
         :type log: bool
         :return: a raw webdriver webelement type on success, None on failure
         """
+        if angular:
+            wd_browser.execute_async_script(WebElementLocator.WAIT_FOR_ANGULAR_JS)
         if timeout == 0:
             if log:
                 self.logger.debug("Attempting 1 time to find element {} .".format(self.describe()))
@@ -342,6 +362,31 @@ class Browser:
 
     SIGNAL_BEFORE_CLICK="slickwd.Browser.signal-before-click"
 
+    ANGULAR_EXISTS_JS="""
+    var attempts = 3;
+    var asyncCallback = arguments[arguments.length - 1];
+    var callback = function(args) {
+        setTimeout(function() {
+            asyncCallback(args);
+        }, 0);
+    };
+    var check = function(n) {
+        try {
+            if (window.angular) {
+                callback([true, null]);
+            } else if (n < 1) {
+                callback([false, 'retries looking for angular exceeded']);
+            } else {
+                window.setTimeout(function() {check(n - 1);}, 1000);
+            }
+        } catch (e) {
+            callback([false, e]);
+        }
+    };
+    check(attempts);
+    """
+
+
     def __init__(self, browser_type, remote_url=None, default_timeout=30):
         """
         Create a new browser session.  The only required parameter *browser_type* can be
@@ -351,6 +396,7 @@ class Browser:
         If you use a remote_url, it should point to a selenium remote server.
         """
         self.default_timeout = default_timeout
+        self.angular_mode = False
 
         # tame the huge logs from webdriver
         wdlogger = logging.getLogger('selenium.webdriver')
@@ -389,6 +435,7 @@ class Browser:
             self.browser_type = browser_type
             self.logger.info("Creating a new browser (locally connected) of type {}".format(browser_type.name.lower()))
             self.wd_instance = browser_type.value[1]()
+            self.wd_instance.set_script_timeout(5)
         else:
             if isinstance(browser_type, BrowserType):
                 browser_type = browser_type.value[0]
@@ -400,6 +447,7 @@ class Browser:
             self.browser_type = browser_type
             self.logger.info("Creating a new browser (through remote connection \"{}\") with desired capabilities of {}".format(remote_url, repr(browser_type)))
             self.wd_instance = webdriver.Remote(remote_url, browser_type)
+            self.wd_instance.set_script_timeout(5)
 
     def quit(self, log=True):
         """
@@ -418,6 +466,7 @@ class Browser:
         if log:
             self.logger.debug("Navigating to url {}.".format(repr(url)))
         self.wd_instance.get(url)
+        self.angular_mode = self.wd_instance.execute_async_script(Browser.ANGULAR_EXISTS_JS)[0]
         return self
 
     def wait_for_page(self, page, timeout=None, log=True):
@@ -478,7 +527,7 @@ class Browser:
         """
         if timeout is None:
             timeout = self.default_timeout
-        return locator.find_element_matching(self.wd_instance, timeout, log) is not None
+        return locator.find_element_matching(self.wd_instance, timeout, log, self.angular_mode) is not None
 
     def _internal_raw_click(self, element):
         """
@@ -497,7 +546,7 @@ class Browser:
         if timeout is None:
             timeout = self.default_timeout
         timer = Timer(timeout)
-        element = locator.find_element_matching(self.wd_instance, timeout, log)
+        element = locator.find_element_matching(self.wd_instance, timeout, log, self.angular_mode)
         if element is None:
             raise WebDriverException("Unable to find element {} after waiting for {:.2f} seconds".format(locator.describe(), float(timeout)))
         while not timer.is_past_timeout():
@@ -508,7 +557,7 @@ class Browser:
             except:
                 pass
             time.sleep(.25)
-            element = locator.find_element_matching(self.wd_instance, timeout, log)
+            element = locator.find_element_matching(self.wd_instance, timeout, log, self.angular_mode)
         if log:
             self.logger.debug("Clicking on element {}".format(locator.describe()))
         if signal:
@@ -530,7 +579,7 @@ class Browser:
         """
         if locate_timeout is None:
             locate_timeout = self.default_timeout
-        element = locator.find_element_matching(self.wd_instance, locate_timeout, log)
+        element = locator.find_element_matching(self.wd_instance, locate_timeout, log, self.angular_mode)
         if log:
             self.logger.debug("Performing checks to make sure that {} is done changing.".format(locator.describe()))
         last_number_of_sub_elements = len(element.find_elements_by_xpath('.//*'))
@@ -539,7 +588,7 @@ class Browser:
         number_of_times_with_no_changes = 0
         while not timer.is_past_timeout():
             time.sleep(.1)
-            element = locator.find_element_matching(self.wd_instance, self.default_timeout, False)
+            element = locator.find_element_matching(self.wd_instance, self.default_timeout, False, self.angular_mode)
             current_number_of_sub_elements = len(element.find_elements_by_xpath('.//*'))
             current_text = element.text
             if current_number_of_sub_elements == last_number_of_sub_elements and current_text == last_text:
@@ -616,7 +665,7 @@ class Browser:
         """
         if timeout is None:
             timeout = self.default_timeout
-        element = locator.find_element_matching(self.wd_instance, timeout, log)
+        element = locator.find_element_matching(self.wd_instance, timeout, log, self.angular_mode)
         if element is None:
             raise WebDriverException("Unable to find element {} after waiting for {:.2f} seconds".format(locator.describe(), float(timeout)))
         text = element.text
@@ -641,7 +690,7 @@ class Browser:
         """
         if timeout is None:
             timeout = self.default_timeout
-        element = locator.find_element_matching(self.wd_instance, timeout, log)
+        element = locator.find_element_matching(self.wd_instance, timeout, log, self.angular_mode)
         if element is None:
             raise WebDriverException("Unable to find element {} after waiting for {:.2f} seconds".format(locator.describe(), float(timeout)))
         value = element.get_attribute(attribute_name)
