@@ -435,7 +435,7 @@ class Browser:
             self.browser_type = browser_type
             self.logger.info("Creating a new browser (locally connected) of type {}".format(browser_type.name.lower()))
             self.wd_instance = browser_type.value[1]()
-            self.wd_instance.set_script_timeout(5)
+            self.wd_instance.set_script_timeout(15)
         else:
             if isinstance(browser_type, BrowserType):
                 browser_type = browser_type.value[0]
