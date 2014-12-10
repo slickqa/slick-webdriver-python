@@ -553,7 +553,7 @@ class Browser:
             if element.is_displayed() and element.is_enabled():
                 break
             try:
-                self.wd_instance.execute_script("arguments[0].scrollIntoView(false);", element)
+                self.wd_instance.execute_script("arguments[0].scrollIntoView(true);", element)
             except:
                 pass
             time.sleep(.25)
