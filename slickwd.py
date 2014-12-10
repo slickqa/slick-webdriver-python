@@ -553,7 +553,7 @@ class Browser:
             if element.is_displayed() and element.is_enabled():
                 break
             try:
-                self.wd_instance.execute_script("arguments[0].scrollIntoView(true);", element)
+                self.wd_instance.execute_script("arguments[0].scrollIntoView(false);", element)
             except:
                 pass
             time.sleep(.25)
@@ -589,16 +589,17 @@ class Browser:
         while not timer.is_past_timeout():
             time.sleep(.1)
             element = locator.find_element_matching(self.wd_instance, self.default_timeout, False, self.angular_mode)
-            current_number_of_sub_elements = len(element.find_elements_by_xpath('.//*'))
-            current_text = element.text
-            if current_number_of_sub_elements == last_number_of_sub_elements and current_text == last_text:
-                number_of_times_with_no_changes += 1
-                if number_of_times_with_no_changes > 2:
-                    break
-            else:
-                number_of_times_with_no_changes = 0
-            last_number_of_sub_elements = current_number_of_sub_elements
-            last_text = current_text
+            if element is not None:
+                current_number_of_sub_elements = len(element.find_elements_by_xpath('.//*'))
+                current_text = element.text
+                if current_number_of_sub_elements == last_number_of_sub_elements and current_text == last_text:
+                    number_of_times_with_no_changes += 1
+                    if number_of_times_with_no_changes > 2:
+                        break
+                else:
+                    number_of_times_with_no_changes = 0
+                last_number_of_sub_elements = current_number_of_sub_elements
+                last_text = current_text
         else:
             if log:
                 self.logger.warn("Waited 5 seconds for {} to stop changing, but it seems to still be changing".format(locator.describe()))
