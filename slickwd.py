@@ -799,8 +799,20 @@ class Browser:
     def screenshot_as_byte(self):
         """
         Take a screenshot of the browser, and return it as a png byte array.
+        :rtype: byte[]
         """
         return self.wd_instance.get_screenshot_as_png()
+
+    def refresh(self, log=True):
+        """
+        Refresh the page.
+        :return: The reference to this Browser instance.
+        :rtype: :class:`.Browser`
+        """
+        if log:
+            self.logger.debug("Refreshing browser page.")
+        self.wd_instance.refresh()
+        return self
 
 
 
