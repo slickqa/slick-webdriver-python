@@ -639,6 +639,23 @@ class Browser:
         element.send_keys(keys)
         return self
 
+    def type(self, locator, keys, timeout=None, log=True):
+        """
+        Send key strokes to an element.  Mostly used for input elements of type text.
+
+        :param locator: the locator that specifies which element to send keystrokes to (usually defined on a Page class)
+        :type locator: :class:`.WebElementLocator`
+        :param timeout: The amount of time (in seconds) to look before throwing a not found exception
+        :type timeout: int or float (float for sub-second precision)
+        :param log: Whether or not to log details of the look for the element (default is True)
+        :type log: bool
+        :return: The reference to this Browser instance.
+        :rtype: :class:`.Browser`
+        """
+        element = self._internal_click(locator, timeout, log, signal=True)
+        element.send_keys(keys)
+        return self
+
     def get_page_text(self):
         """
         Get the text from the current web page.  This tries to get the value of the "text" attribute of the html
