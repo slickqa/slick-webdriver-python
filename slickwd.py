@@ -624,22 +624,13 @@ class Browser:
 
     def click_and_type(self, locator, keys, timeout=None, log=True):
         """
-        Click on an element using the mouse, then send keys to it.  Mostly used for input elements of type text.
-
-        :param locator: the locator that specifies which element to click on and type in (usually defined on a Page class)
-        :type locator: :class:`.WebElementLocator`
-        :param timeout: The amount of time (in seconds) to look before throwing a not found exception
-        :type timeout: int or float (float for sub-second precision)
-        :param log: Whether or not to log details of the look for the element (default is True)
-        :type log: bool
-        :return: The reference to this Browser instance.
-        :rtype: :class:`.Browser`
+        Deprecated, just use type.
         """
         element = self._internal_click(locator, timeout, log, signal=True)
         element.send_keys(keys)
         return self
 
-    def type(self, locator, keys, timeout=None, log=True):
+    def type(self, locator, keys, timeout=None, log=True, clear=True, click=True):
         """
         Send key strokes to an element.  Mostly used for input elements of type text.
 
@@ -649,10 +640,21 @@ class Browser:
         :type timeout: int or float (float for sub-second precision)
         :param log: Whether or not to log details of the look for the element (default is True)
         :type log: bool
+        :param clear: Should we clear (assuming it's an input with type=text) the value first?
+        :type clear: bool
+        :param click: Should we click first?
+        :type click: bool
         :return: The reference to this Browser instance.
         :rtype: :class:`.Browser`
         """
-        element = self._internal_click(locator, timeout, log, signal=True)
+        element = None
+        if click:
+            element = self._internal_click(locator, timeout, log, signal=True)
+        else:
+            element = locator.find_element_matching(self.wd_instance, timeout, log, self.angular_mode)
+        if clear:
+            self.logger.debug("Clearing the value of {} before typing.".format(locator.describe()))
+            element.set_attribute("value", "")
         element.send_keys(keys)
         return self
 
