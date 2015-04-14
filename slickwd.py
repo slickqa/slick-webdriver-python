@@ -447,7 +447,7 @@ class Browser:
             self.browser_type = browser_type
             self.logger.info("Creating a new browser (through remote connection \"{}\") with desired capabilities of {}".format(remote_url, repr(browser_type)))
             self.wd_instance = webdriver.Remote(remote_url, browser_type)
-            self.wd_instance.set_script_timeout(5)
+            self.wd_instance.set_script_timeout(10)
 
     def quit(self, log=True):
         """
@@ -566,7 +566,7 @@ class Browser:
         self._internal_raw_click(element)
         return element
 
-    def _internal_wait_for_changes_to_stop(self, locator, locate_timeout=None, change_timeout=5, log=True):
+    def _internal_wait_for_changes_to_stop(self, locator, locate_timeout=None, change_timeout=10, log=True):
         """
         Internal method, do not call unless you know what you are doing.  This method waits for changes to an element
         (number of sub elements, text property) to stop changing for a period of time.
@@ -602,7 +602,7 @@ class Browser:
                 last_text = current_text
         else:
             if log:
-                self.logger.warn("Waited 5 seconds for {} to stop changing, but it seems to still be changing".format(locator.describe()))
+                self.logger.warn("Waited 10 seconds for {} to stop changing, but it seems to still be changing".format(locator.describe()))
         return element
 
 
