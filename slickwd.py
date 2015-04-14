@@ -654,7 +654,7 @@ class Browser:
             element = locator.find_element_matching(self.wd_instance, timeout, log, self.angular_mode)
         if clear:
             self.logger.debug("Clearing the value of {} before typing.".format(locator.describe()))
-            element.set_attribute("value", "")
+            element.clear()
         element.send_keys(keys)
         return self
 
