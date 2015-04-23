@@ -51,7 +51,7 @@ class BrowserType(Enum):
     """PhantomJS headless browser (must download separately, `phantomjs homepage <http://phantomjs.org/>`_)"""
 
 
-class Find:
+class Find(object):
     """
     Use the class methods on this class to create instances, which are used by the WebElementLocator class
     to find elements in a browser.
@@ -207,7 +207,7 @@ class Find:
 
 
 # there is no doc because this is not intended to be used externally (not that it can't be)
-class Timer:
+class Timer(object):
 
     def __init__(self, length_in_seconds):
         self.start = time.time()
@@ -217,7 +217,7 @@ class Timer:
         return time.time() > self.end
 
 
-class WebElementLocator:
+class WebElementLocator(object):
     """
     A WebElementLocator represents information about an element you are trying to find.  It has a name field for
     nice logging, and a finder field (should be of type :class:`.Find`).
@@ -339,7 +339,7 @@ class WebElementLocator:
             self.parent_initialized = True
         return self.description
 
-class Browser:
+class Browser(object):
     """
     The Browser is the primary interface you have to automate a browser.  An instance of Browser has the same
     methods no matter which browser it is you launch.  It also abstracts away the creation of remote browser
@@ -835,7 +835,7 @@ class Browser:
 
 
 
-class Container:
+class Container(object):
     """
     A generic container for structuring multiple *WebElementLocator* into groupings that help programmers find the right
     shared definition.
