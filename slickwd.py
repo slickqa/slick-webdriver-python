@@ -622,6 +622,29 @@ class Browser(object):
         self._internal_click(locator, timeout, log, signal=True)
         return self
 
+    def set_checkbox_state(self, locator, checked=None, timeout=None, log=True):
+        """
+        Sets the state of a checkbox input type regardless of the current state.  You can control how long to wait, and if the method should do
+        any logging.  If you specify 0 for the timeout, the framework will only look for the element once.
+
+        :param locator: the locator to look for (usually defined on a Page class)
+        :type locator: :class:`.WebElementLocator`
+        :param checked: True if you want the checkbox checked
+        :type checked: bool
+        :param timeout: The amount of time (in seconds) to look before returning False
+        :type timeout: int or float
+        :param log: Whether or not to log details of the look for the element (default is True)
+        :type log: bool
+        """
+        if timeout is None:
+            timeout = self.default_timeout
+        element = locator.find_element_matching(self.wd_instance, timeout, log, self.angular_mode)
+        if element.is_selected() and not checked:
+            self._internal_click(locator, timeout, log)
+        elif not element.is_selected() and checked:
+            self._internal_click(locator, timeout, log)
+        return self
+
     def click_and_type(self, locator, keys, timeout=None, log=True):
         """
         Deprecated, just use type.
