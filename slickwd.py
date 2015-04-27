@@ -638,11 +638,14 @@ class Browser(object):
         """
         if timeout is None:
             timeout = self.default_timeout
-        element = locator.find_element_matching(self.wd_instance, timeout, log, self.angular_mode)
-        if element.is_selected() and not checked:
-            self._internal_click(locator, timeout, log)
-        elif not element.is_selected() and checked:
-            self._internal_click(locator, timeout, log)
+        timer = Timer(timeout)
+        while not timer.is_past_timeout():
+            element = locator.find_element_matching(self.wd_instance, timeout, log, self.angular_mode)
+            if element.is_selected() and not checked:
+                self._internal_click(locator, timeout=1, log=log)
+                return self
+            if not element.is_selected() and checked:
+                self._internal_click(locator, timeout=1, log=log)
         return self
 
     def click_and_type(self, locator, keys, timeout=None, log=True):
