@@ -673,6 +673,8 @@ class Browser(object):
         :return: The reference to this Browser instance.
         :rtype: :class:`.Browser`
         """
+        if timeout is None:
+            timeout = self.default_timeout
         element = None
         if click:
             element = self._internal_click(locator, timeout, log, signal=True)
