@@ -547,7 +547,7 @@ class Browser(object):
             timeout = self.default_timeout
         timer = Timer(timeout)
         while not timer.is_past_timeout():
-            if locator.find_element_matching(self.wd_instance, timeout=0, log, self.angular_mode) is None:
+            if locator.find_element_matching(self.wd_instance, 0, log, self.angular_mode) is None:
                 self.logger("Element {} no longer exists.  wait_for_not_exist has completed.".format(locator.describe()))
                 return
             else:
