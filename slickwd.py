@@ -9,6 +9,8 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.support.select import Select
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.keys import Keys
 from selenium import webdriver
 
 from pydispatch import dispatcher
@@ -528,6 +530,28 @@ class Browser(object):
         if timeout is None:
             timeout = self.default_timeout
         return locator.find_element_matching(self.wd_instance, timeout, log, self.angular_mode) is not None
+
+    def wait_for_not_exist(self, locator, timeout=None, log=True):
+        """
+        Wait for an element not to exist on a page.  You can control how long to wait, and if the method should do
+        any logging.
+
+        :param locator: the locator to check if exists(usually defined on a Page class)
+        :type locator: :class:`.WebElementLocator`
+        :param timeout: The amount of time (in seconds) to look before returning
+        :type timeout: int or float
+        :param log: Whether or not to log details of the look for the element (default is True)
+        :type log: bool
+        """
+        if timeout is None:
+            timeout = self.default_timeout
+        timer = Timer(timeout)
+        while not timer.is_past_timeout():
+            if locator.find_element_matching(self.wd_instance, timeout=0, log, self.angular_mode) is None:
+                self.logger("Element {} no longer exists.  wait_for_not_exist has completed.")
+                break
+            else:
+                time.sleep(.25)
 
     def _internal_raw_click(self, element):
         """
