@@ -548,10 +548,12 @@ class Browser(object):
         timer = Timer(timeout)
         while not timer.is_past_timeout():
             if locator.find_element_matching(self.wd_instance, timeout=0, log, self.angular_mode) is None:
-                self.logger("Element {} no longer exists.  wait_for_not_exist has completed.")
-                break
+                self.logger("Element {} no longer exists.  wait_for_not_exist has completed.".format(locator.describe()))
+                return
             else:
                 time.sleep(.25)
+        raise Exception("Element {} still existed after waiting for {:.2f} seconds".format(locator.describe(), float(timeout)))
+
 
     def _internal_raw_click(self, element):
         """
