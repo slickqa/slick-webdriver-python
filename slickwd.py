@@ -689,14 +689,8 @@ class Browser(object):
         """
         if timeout is None:
             timeout = self.default_timeout
-        timer = Timer(timeout)
-        while not timer.is_past_timeout():
-            element = locator.find_element_matching(self.wd_instance, timeout, log, self.angular_mode)
-            if element.is_selected():
-                return True
-            if not element.is_selected():
-                return False
-        return self
+        element = locator.find_element_matching(self.wd_instance, timeout, log, self.angular_mode)
+        return element.is_selected()
 
     def click_and_type(self, locator, keys, timeout=None, log=True):
         """
