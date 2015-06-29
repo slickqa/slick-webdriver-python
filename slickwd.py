@@ -463,12 +463,15 @@ class Browser(object):
         self.wd_instance.quit()
         return self
 
-    def go_to(self, url, log=True):
+    def go_to(self, url, log=True, test_for_angular=False):
         """Navigate the browser to the url provided"""
         if log:
             self.logger.debug("Navigating to url {}.".format(repr(url)))
         self.wd_instance.get(url)
-        self.angular_mode = self.wd_instance.execute_async_script(Browser.ANGULAR_EXISTS_JS)[0]
+        if test_for_angular:
+            self.angular_mode = self.wd_instance.execute_async_script(Browser.ANGULAR_EXISTS_JS)[0]
+        else:
+            self.angular_mode = False
         return self
 
     def wait_for_page(self, page, timeout=None, log=True):
