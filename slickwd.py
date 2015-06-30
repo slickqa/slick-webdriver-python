@@ -304,7 +304,12 @@ class WebElementLocator(object):
         :return: a raw webdriver webelement type on success, None on failure
         """
         if angular:
-            wd_browser.execute_async_script(WebElementLocator.WAIT_FOR_ANGULAR_JS)
+            for i in range(3):
+                try:
+                    wd_browser.execute_async_script(WebElementLocator.WAIT_FOR_ANGULAR_JS)
+                    break
+                except:
+                    time.sleep(.2)
         if timeout == 0:
             if log:
                 self.logger.debug("Attempting 1 time to find element {} .".format(self.describe()))
