@@ -271,7 +271,12 @@ class WebElementLocator(object):
         :rtype: list of web element
         """
         if angular:
-            wd_browser.execute_async_script(WebElementLocator.WAIT_FOR_ANGULAR_JS)
+            for i in range(3):
+                try:
+                    wd_browser.execute_async_script(WebElementLocator.WAIT_FOR_ANGULAR_JS)
+                    break
+                except:
+                    time.sleep(.2)
         retval = []
         if log:
             self.logger.debug("Looking for a list of elements matching {}".format(self.describe()))
