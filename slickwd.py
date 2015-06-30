@@ -710,7 +710,14 @@ class Browser(object):
         Deprecated, just use type.
         """
         element = self._internal_click(locator, timeout, log, signal=True)
-        element.send_keys(keys)
+        for i in range(3):
+            try:
+                element.send_keys(keys)
+                break
+            except:
+                element = locator.find_element_matching(self.wd_instance, timeout, log, self.angular_mode)
+        else:
+            raise WebDriverException("Unable to find element {} not found.".format(locator.name))
         return self
 
     def type(self, locator, keys, timeout=None, log=True, clear=True, click=True):
