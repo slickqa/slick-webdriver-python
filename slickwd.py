@@ -959,6 +959,20 @@ class Browser(object):
         self.wd_instance.refresh()
         return self
 
+    def tap(self, positions, log=True):
+        """
+        Tap (for mobile browsers) on each of the positions passed in
+        :param positions: A list of x, y coordinate tuples to tap.  If you want more than one coordinate, group each
+                          coordinate in a tuple of their own.  Example: [(100, 200), (300, 400)].
+        :type positions: [(int, int)]
+        :return: The reference to this browser instance
+        :rtype: :class:`.Browser`
+        """
+        if log:
+            self.logger.debug("Performing a mobile tap at positions: {}".format(repr(positions)))
+        self.wd_instance.tap(positions)
+        return self
+
 
 class Container(object):
     """
