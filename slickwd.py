@@ -980,6 +980,28 @@ class Container(object):
     shared definition.
     """
 
+    @property
+    def browser(self):
+        """
+        The slickwd Browser instance.
+        :return:
+        """
+        if hasattr(self, '_browser'):
+            return self._browser
+        elif hasattr(self, 'parent') and self.parent is not None:
+            return self.parent.browser
+        else:
+            return None
+
+    @browser.setter
+    def set_browser(self, new_instance):
+        """
+        Set the browser instance
+        :param new_instance: the new instance of browser to set
+        :type new_instance: :class:`.Browser`
+        """
+        self._browser = new_instance
+
     def get_name(self):
         """
         Get the full name of this page.  If using nested :doc:`page-classes` this will get the full *dotted* name
