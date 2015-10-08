@@ -994,7 +994,7 @@ class Container(object):
             return None
 
     @browser.setter
-    def set_browser(self, new_instance):
+    def browser(self, new_instance):
         """
         Set the browser instance
         :param new_instance: the new instance of browser to set
