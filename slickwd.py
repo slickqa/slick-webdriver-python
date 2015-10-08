@@ -1,20 +1,19 @@
 """
 """
 
-__author__ = 'jcorbett'
-
 import logging
 from enum import Enum
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.support.select import Select
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.common.keys import Keys
 from selenium import webdriver
+import appium
 
 from pydispatch import dispatcher
 import time
+
+__author__ = 'Jason Corbett'
 
 
 class BrowserType(Enum):
@@ -67,8 +66,7 @@ class Find(object):
     """
 
     def __init__(self, by, value):
-        self.finders = [(by, value),]
-
+        self.finders = [(by, value), ]
 
     def describe(self):
         """Describe this finder in a plain english sort of way.  This allows for better logging.
@@ -210,7 +208,6 @@ class Find(object):
 
 # there is no doc because this is not intended to be used externally (not that it can't be)
 class Timer(object):
-
     def __init__(self, length_in_seconds):
         self.start = time.time()
         self.end = self.start + length_in_seconds
@@ -227,7 +224,7 @@ class WebElementLocator(object):
     See :doc:`locators`
     """
 
-    WAIT_FOR_ANGULAR_JS="""
+    WAIT_FOR_ANGULAR_JS = """
     var rootSelector = ["[ng-app]","[data-ng-app]","body"];
     var callback = arguments[arguments.length - 1];
     var el = document.querySelector(rootSelector);
@@ -326,16 +323,24 @@ class WebElementLocator(object):
             retval = None
             timer = Timer(timeout)
             if log:
-                self.logger.debug("Waiting for up to {:.2f} seconds for element {} to be available.".format(float(timeout), self.describe()))
+                self.logger.debug(
+                    "Waiting for up to {:.2f} seconds for element {} to be available.".format(float(timeout),
+                                                                                              self.describe()))
             while not timer.is_past_timeout():
                 for finder in self.finder.finders:
                     try:
-                        retval =  wd_browser.find_element(finder[0], finder[1])
+                        retval = wd_browser.find_element(finder[0], finder[1])
                     except WebDriverException:
                         pass
                     if retval is not None:
                         if log:
-                            self.logger.info("Found element {} using locator property {} after {:.2f} seconds.".format(self.name, Find.describe_single_finder(finder[0], finder[1]), time.time() - timer.start))
+                            self.logger.info(
+                                "Found element {} using locator property {} after {:.2f} seconds.".format(self.name,
+                                                                                                          Find.describe_single_finder(
+                                                                                                              finder[0],
+                                                                                                              finder[
+                                                                                                                  1]),
+                                                                                                          time.time() - timer.start))
                         return retval
                 time.sleep(.25)
 
@@ -347,9 +352,11 @@ class WebElementLocator(object):
         :rtype: str
         """
         if self.parent is not None and self.parent_initialized is False:
-            self.description = "{} on page {} found by {}".format(self.name, self.parent.get_name(), self.finder.describe())
+            self.description = "{} on page {} found by {}".format(self.name, self.parent.get_name(),
+                                                                  self.finder.describe())
             self.parent_initialized = True
         return self.description
+
 
 class Browser(object):
     """
@@ -372,9 +379,9 @@ class Browser(object):
     For more examples, see :doc:`examples`.
     """
 
-    SIGNAL_BEFORE_CLICK="slickwd.Browser.signal-before-click"
+    SIGNAL_BEFORE_CLICK = "slickwd.Browser.signal-before-click"
 
-    ANGULAR_EXISTS_JS="""
+    ANGULAR_EXISTS_JS = """
     var attempts = 3;
     var asyncCallback = arguments[arguments.length - 1];
     var callback = function(args) {
@@ -398,7 +405,6 @@ class Browser(object):
     check(attempts);
     """
 
-
     def __init__(self, browser_type, remote_url=None, default_timeout=30):
         """
         Create a new browser session.  The only required parameter *browser_type* can be
@@ -420,7 +426,9 @@ class Browser(object):
             browser_name = browser_type.name
         elif isinstance(browser_type, dict) and 'browserName' in browser_type:
             browser_name = browser_type[browser_name]
-        self.logger.debug("New browser instance requested with browser_type={} and remote_url={}".format(repr(browser_name), repr(remote_url)))
+        self.logger.debug(
+            "New browser instance requested with browser_type={} and remote_url={}".format(repr(browser_name),
+                                                                                           repr(remote_url)))
         if isinstance(browser_type, str):
             try:
                 browser_type = BrowserType[browser_type.upper()]
@@ -441,7 +449,9 @@ class Browser(object):
             if not isinstance(browser_type, BrowserType):
                 raise WebDriverException("Unable to create browser of type \"{}\"".format(repr(browser_type)))
             if browser_type.value[1] is None:
-                raise WebDriverException("Browser of type \"{}\" can only be launched remotely, which means you must provide a remote_url.".format(browser_type.name))
+                raise WebDriverException(
+                    "Browser of type \"{}\" can only be launched remotely, which means you must provide a remote_url.".format(
+                        browser_type.name))
 
             self.remote_url = remote_url
             self.browser_type = browser_type
@@ -453,12 +463,19 @@ class Browser(object):
                 browser_type = browser_type.value[0]
 
             if not isinstance(browser_type, dict):
-                raise WebDriverException("Unable to create a browser of type \"{}\", when using remote_url browser_type should be either an instance of BrowserType or a dictionary containing desired capabilities.".format(repr(browser_type)))
+                raise WebDriverException(
+                    "Unable to create a browser of type \"{}\", when using remote_url browser_type should be either an instance of BrowserType or a dictionary containing desired capabilities.".format(
+                        repr(browser_type)))
 
             self.remote_url = remote_url
             self.browser_type = browser_type
-            self.logger.info("Creating a new browser (through remote connection \"{}\") with desired capabilities of {}".format(remote_url, repr(browser_type)))
-            self.wd_instance = webdriver.Remote(remote_url, browser_type)
+            self.logger.info(
+                "Creating a new browser (through remote connection \"{}\") with desired capabilities of {}".format(
+                    remote_url, repr(browser_type)))
+            if 'platformName' in browser_type and browser_type['platformName'] in ['Android', 'iOS']:
+                self.wd_instance = appium.webdriver.Remote(remote_url, browser_type)
+            else:
+                self.wd_instance = webdriver.Remote(remote_url, browser_type)
             self.wd_instance.set_script_timeout(10)
 
     def quit(self, log=True):
@@ -511,19 +528,26 @@ class Browser(object):
             timeout = self.default_timeout
 
         if log:
-            self.logger.debug("Waiting for up to {:.2f} seconds for page {} to be the current page.".format(float(timeout), page_instance.get_name()))
+            self.logger.debug(
+                "Waiting for up to {:.2f} seconds for page {} to be the current page.".format(float(timeout),
+                                                                                              page_instance.get_name()))
 
         timer = Timer(timeout)
         while not timer.is_past_timeout():
             if page_instance.is_current_page(self):
                 break
-            time.sleep(0.25) # sleep a quarter of a second
+            time.sleep(0.25)  # sleep a quarter of a second
         else:
             # The timer.is_past_timeout() returned true and that kicked us out of the loop
             if log:
-                self.logger.warn("Waited {:.2f} seconds for page {} to exist and it never returned true from is_current_page.".format(float(timeout), page_instance.get_name()))
-            raise WebDriverException("Waited {:.2f} seconds for page {} to exist and it never returned true from is_current_page.".format(float(timeout), page_instance.get_name()))
-        self.logger.debug("Found page {} after {:.2f} seconds.".format(page_instance.get_name(), time.time() - timer.start))
+                self.logger.warn(
+                    "Waited {:.2f} seconds for page {} to exist and it never returned true from is_current_page.".format(
+                        float(timeout), page_instance.get_name()))
+            raise WebDriverException(
+                "Waited {:.2f} seconds for page {} to exist and it never returned true from is_current_page.".format(
+                    float(timeout), page_instance.get_name()))
+        self.logger.debug(
+            "Found page {} after {:.2f} seconds.".format(page_instance.get_name(), time.time() - timer.start))
         return self
 
     def exists(self, locator, timeout=None, log=True):
@@ -561,19 +585,21 @@ class Browser(object):
         timer = Timer(timeout)
         while not timer.is_past_timeout():
             if locator.find_element_matching(self.wd_instance, 0, log, self.angular_mode) is None:
-                self.logger.info("Element {} no longer exists.  wait_for_not_exist has completed.".format(locator.describe()))
+                self.logger.info(
+                    "Element {} no longer exists.  wait_for_not_exist has completed.".format(locator.describe()))
                 return
             else:
                 time.sleep(.25)
-        raise Exception("Element {} still existed after waiting for {:.2f} seconds".format(locator.describe(), float(timeout)))
-
+        raise Exception(
+            "Element {} still existed after waiting for {:.2f} seconds".format(locator.describe(), float(timeout)))
 
     def _internal_raw_click(self, element):
         """
         A private internal method for
         """
-        #This beauty comes courtesy of comment #85 on https://code.google.com/p/selenium/issues/detail?id=2766
-        if (isinstance(self.browser_type, BrowserType) and self.browser_type is BrowserType.CHROME) or (isinstance(self.browser_type, dict) and self.browser_type['browserName'] == 'chrome'):
+        # This beauty comes courtesy of comment #85 on https://code.google.com/p/selenium/issues/detail?id=2766
+        if (isinstance(self.browser_type, BrowserType) and self.browser_type is BrowserType.CHROME) or (
+            isinstance(self.browser_type, dict) and self.browser_type['browserName'] == 'chrome'):
             self.wd_instance.execute_script("arguments[0].click();", element)
         else:
             element.click()
@@ -587,7 +613,8 @@ class Browser(object):
         timer = Timer(timeout)
         element = locator.find_element_matching(self.wd_instance, timeout, log, self.angular_mode)
         if element is None:
-            raise WebDriverException("Unable to find element {} after waiting for {:.2f} seconds".format(locator.describe(), float(timeout)))
+            raise WebDriverException(
+                "Unable to find element {} after waiting for {:.2f} seconds".format(locator.describe(), float(timeout)))
         while not timer.is_past_timeout():
             if element.is_displayed() and element.is_enabled():
                 break
@@ -641,9 +668,9 @@ class Browser(object):
                 last_text = current_text
         else:
             if log:
-                self.logger.warn("Waited 10 seconds for {} to stop changing, but it seems to still be changing".format(locator.describe()))
+                self.logger.warn("Waited 10 seconds for {} to stop changing, but it seems to still be changing".format(
+                    locator.describe()))
         return element
-
 
     def click(self, locator, timeout=None, log=True):
         """
@@ -779,7 +806,8 @@ class Browser(object):
             timeout = self.default_timeout
         element = locator.find_element_matching(self.wd_instance, timeout, log, self.angular_mode)
         if element is None:
-            raise WebDriverException("Unable to find element {} after waiting for {:.2f} seconds".format(locator.describe(), float(timeout)))
+            raise WebDriverException(
+                "Unable to find element {} after waiting for {:.2f} seconds".format(locator.describe(), float(timeout)))
         text = element.text
         if log:
             self.logger.debug("Found element {}, returning text: {}".format(locator.describe(), text))
@@ -804,10 +832,12 @@ class Browser(object):
             timeout = self.default_timeout
         element = locator.find_element_matching(self.wd_instance, timeout, log, self.angular_mode)
         if element is None:
-            raise WebDriverException("Unable to find element {} after waiting for {:.2f} seconds".format(locator.describe(), float(timeout)))
+            raise WebDriverException(
+                "Unable to find element {} after waiting for {:.2f} seconds".format(locator.describe(), float(timeout)))
         value = element.get_attribute(attribute_name)
         if log:
-            self.logger.debug("Found element {}, attribute {} has value: {}".format(locator.describe(), attribute_name, value))
+            self.logger.debug(
+                "Found element {}, attribute {} has value: {}".format(locator.describe(), attribute_name, value))
         return value
 
     def first_page_found(self, page_classes, timeout=None, log=True):
@@ -844,13 +874,16 @@ class Browser(object):
             for page in page_list:
                 if page['instance'].is_current_page(self):
                     if log:
-                        self.logger.info("Found page {} after {:.2f} seconds.".format(page['instance'].get_name(), time.time() - timer.start))
+                        self.logger.info("Found page {} after {:.2f} seconds.".format(page['instance'].get_name(),
+                                                                                      time.time() - timer.start))
                     return page['retval']
-            time.sleep(0.25) # sleep a quarter of a second
+            time.sleep(0.25)  # sleep a quarter of a second
         else:
             # The timer.is_past_timeout() returned true and that kicked us out of the loop
             if log:
-                self.logger.warn("Waited {:.2f} seconds for one of the pages [{}] to return true from is_current_page, but that never happend.".format(float(timeout), ','.join(page_names)))
+                self.logger.warn(
+                    "Waited {:.2f} seconds for one of the pages [{}] to return true from is_current_page, but that never happend.".format(
+                        float(timeout), ','.join(page_names)))
             return None
 
     def get_url(self, log=True):
@@ -901,7 +934,8 @@ class Browser(object):
         :rtype: :class:`.Browser`
         """
         if log:
-            self.logger.debug('Selecting option by text "{}" from select element {}'.format(option_text, locator.describe()))
+            self.logger.debug(
+                'Selecting option by text "{}" from select element {}'.format(option_text, locator.describe()))
         element = self._internal_wait_for_changes_to_stop(locator, timeout, log)
         select = Select(element)
         select.select_by_visible_text(option_text)
@@ -924,7 +958,6 @@ class Browser(object):
             self.logger.debug("Refreshing browser page.")
         self.wd_instance.refresh()
         return self
-
 
 
 class Container(object):
@@ -971,6 +1004,3 @@ class Container(object):
             if isinstance(value, WebElementLocator):
                 value.parent = self
         return super(Container, self).__setattr__(key, value)
-
-
-
