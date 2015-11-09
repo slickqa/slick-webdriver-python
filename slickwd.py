@@ -476,7 +476,7 @@ class Browser(object):
                 self.wd_instance = appium.webdriver.Remote(remote_url, browser_type)
             else:
                 self.wd_instance = webdriver.Remote(remote_url, browser_type)
-            self.wd_instance.set_script_timeout(10)
+                self.wd_instance.set_script_timeout(10)
 
     def quit(self, log=True):
         """
