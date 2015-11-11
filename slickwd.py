@@ -586,8 +586,56 @@ class Browser(object):
             timeout = self.default_timeout
         self.logger.info("Checking if element: {} is displayed".format(locator.describe()))
         element = locator.find_element_matching(self.wd_instance, timeout, log, self.angular_mode)
-        if element is not None:
-            return element.is_displayed()
+        if element is None:
+            raise WebDriverException(
+                "Unable to find element {} after waiting for {} seconds".format(locator.describe(), timeout))
+        return element.is_displayed()
+
+    def is_enabled(self, locator, timeout=None, log=True):
+        """
+        Check to see if an element is enabled.  You can control how long to wait, and if the method should do
+        any logging.  If you specify 0 for the timeout, the framework will only look for the element once.
+
+        :param locator: the locator to look for (usually defined on a Page class)
+        :type locator: :class:`.WebElementLocator`
+        :param timeout: The amount of time (in seconds) to look before returning False
+        :type timeout: int or float
+        :param log: Whether or not to log details of the look for the element (default is True)
+        :type log: bool
+        :return: True if an element was enabled
+        :rtype: bool
+        """
+        if timeout is None:
+            timeout = self.default_timeout
+        self.logger.info("Checking if element: {} is enabled".format(locator.describe()))
+        element = locator.find_element_matching(self.wd_instance, timeout, log, self.angular_mode)
+        if element is None:
+            raise WebDriverException(
+                "Unable to find element {} after waiting for {} seconds".format(locator.describe(), timeout))
+        return element.is_enabled()
+
+    def is_selected(self, locator, timeout=None, log=True):
+        """
+        Check to see if an element is selected.  You can control how long to wait, and if the method should do
+        any logging.  If you specify 0 for the timeout, the framework will only look for the element once.
+
+        :param locator: the locator to look for (usually defined on a Page class)
+        :type locator: :class:`.WebElementLocator`
+        :param timeout: The amount of time (in seconds) to look before returning False
+        :type timeout: int or float
+        :param log: Whether or not to log details of the look for the element (default is True)
+        :type log: bool
+        :return: True if an element was selected
+        :rtype: bool
+        """
+        if timeout is None:
+            timeout = self.default_timeout
+        self.logger.info("Checking if element: {} is selected".format(locator.describe()))
+        element = locator.find_element_matching(self.wd_instance, timeout, log, self.angular_mode)
+        if element is None:
+            raise WebDriverException(
+                "Unable to find element {} after waiting for {} seconds".format(locator.describe(), timeout))
+        return element.is_selected()
 
     def wait_for_not_exist(self, locator, timeout=None, log=True):
         """
