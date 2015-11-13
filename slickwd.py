@@ -1082,7 +1082,8 @@ class Container(object):
     def browser(self):
         """
         The slickwd Browser instance.
-        :return:
+        :return: The Browser instance of itself or it's parent.
+        :rtype: Browser
         """
         if hasattr(self, '_browser'):
             return self._browser
