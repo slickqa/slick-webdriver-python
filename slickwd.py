@@ -9,6 +9,7 @@ from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.support.select import Select
 from selenium import webdriver
 import appium
+from appium.webdriver.common.mobileby import MobileBy
 
 from pydispatch import dispatcher
 import time
@@ -91,6 +92,10 @@ class Find(object):
             return "xpath {}".format(value)
         elif name is By.TAG_NAME:
             return "tag name \"{}\"".format(value)
+        elif name is MobileBy.ANDROID_UIAUTOMATOR:
+            return "android ui automator \"{}\"".format(value)
+        elif name is MobileBy.ACCESSIBILITY_ID:
+            return "accessibility id \"{}\"".format(value)
 
     def Or(self, finder):
         """
@@ -204,6 +209,30 @@ class Find(object):
         :rtype: :class:`.Find`
         """
         return Find(By.TAG_NAME, tag_name_value)
+
+    @classmethod
+    def by_android_uiautomator(cls, uiautomator_value):
+        """
+        Find a mobile element using an android UI Automator locator.  Only valid on android.
+
+        :param uiautomator_value: The UI Automator to search for
+        :type uiautomator_value: str
+        :return: an instance of Find that looks for the UI Automator on the mobile device
+        :rtype: :class:`.Find`
+        """
+        return Find(MobileBy.ANDROID_UIAUTOMATOR, uiautomator_value)
+
+    @classmethod
+    def by_accessibility_id(cls, accessibility_id):
+        """
+        Find a mobile element using an accessibility id. Only valid on mobile.
+
+        :param accessibility_id: The accessibility id to look for on the mobile device.
+        :type accessibility_id: str
+        :return: an instance of Find the looks for the element matching the accessibility id
+        :rtype: :class:`.Find`
+        """
+        return Find(MobileBy.ACCESSIBILITY_ID, accessibility_id)
 
 
 # there is no doc because this is not intended to be used externally (not that it can't be)
