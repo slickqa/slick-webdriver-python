@@ -486,6 +486,7 @@ class Browser(object):
             self.browser_type = browser_type
             self.logger.info("Creating a new browser (locally connected) of type {}".format(browser_type.name.lower()))
             self.wd_instance = browser_type.value[1]()
+            ''':type: appium.webdriver.Remote'''
             self.wd_instance.set_script_timeout(15)
         else:
             if isinstance(browser_type, BrowserType):
@@ -503,8 +504,10 @@ class Browser(object):
                     remote_url, repr(browser_type)))
             if 'platformName' in browser_type and browser_type['platformName'] in ['Android', 'iOS']:
                 self.wd_instance = appium.webdriver.Remote(remote_url, browser_type)
+            	''':type: appium.webdriver.Remote'''
             else:
                 self.wd_instance = webdriver.Remote(remote_url, browser_type)
+            	''':type: appium.webdriver.Remote'''
                 self.wd_instance.set_script_timeout(10)
 
     def quit(self, log=True):
