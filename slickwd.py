@@ -1074,6 +1074,16 @@ class Browser(object):
         self.wd_instance.tap(positions)
         return self
 
+    def android_scroll_to_element(self, element_text, log=True):
+        """
+        Scroll to element with element_text in the text property
+        :param element_text:
+        :return:
+        """
+        if log:
+            self.logger.debug("Scrolling to element with text property: {}".format(element_text))
+        self.wd_instance.find_element_by_android_uiautomator('new UiScrollable(new UiSelector().scrollable(true).instance(0)).scrollIntoView(new UiSelector().text("{}").instance(0))'.format(element_text))
+
 
 class Container(object):
     """
