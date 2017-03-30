@@ -699,11 +699,12 @@ class Browser(object):
         A private internal method for
         """
         # This beauty comes courtesy of comment #85 on https://code.google.com/p/selenium/issues/detail?id=2766
-        if (isinstance(self.browser_type, BrowserType) and self.browser_type is BrowserType.CHROME) or (
-            isinstance(self.browser_type, dict) and 'browserName' in self.browser_type and self.browser_type['browserName'] == 'chrome'):
-            self.wd_instance.execute_script("arguments[0].click();", element)
-        else:
-            element.click()
+        # as of 10/30/2017 this doesn't seem to work, and the normal way works
+        #if (isinstance(self.browser_type, BrowserType) and self.browser_type is BrowserType.CHROME) or (
+        #    isinstance(self.browser_type, dict) and 'browserName' in self.browser_type and self.browser_type['browserName'] == 'chrome'):
+        #    self.wd_instance.execute_script("arguments[0].click();", element)
+        #else:
+        element.click()
 
     def _internal_click(self, locator, timeout, log, signal=False):
         """
