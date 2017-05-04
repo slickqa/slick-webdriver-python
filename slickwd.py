@@ -5,6 +5,7 @@ import logging
 from enum import Enum
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.support.select import Select
 from selenium import webdriver
@@ -788,6 +789,27 @@ class Browser(object):
         :rtype: :class:`.Browser`
         """
         self._internal_click(locator, timeout, log, signal=True)
+        return self
+
+    def move_to_and_click(self, locator, timeout=None, log=True):
+        """
+        Move to an element (mouse) and then click it.
+        :param locator: the locator that specifies which element to click on (usually defined on a Page class)
+        :type locator: :class:`.WebElementLocator`
+        :param timeout: The amount of time (in seconds) to look before throwing a not found exception
+        :type timeout: int or float (float for sub-second precision)
+        :param log: Whether or not to log details of the look for the element (default is True)
+        :type log: bool
+        :return: The reference to this Browser instance.
+        :rtype: :class:`.Browser`
+        """
+        if timeout is None:
+            timeout = self.default_timeout
+        element = locator.find_element_matching(self.wd_instance, timeout, log, self.angular_mode)
+        action = ActionChains(self.wd_instance)
+        if log:
+            self.logger.info("Moving to element {} and clicking it.".format(locator.describe()))
+        action.move_to_element(element).click(element).perform()
         return self
 
     def set_checkbox_state(self, locator, checked=None, timeout=None, log=True):
