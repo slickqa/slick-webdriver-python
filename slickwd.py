@@ -505,10 +505,10 @@ class Browser(object):
                     remote_url, repr(browser_type)))
             if 'platformName' in browser_type and browser_type['platformName'] in ['Android', 'iOS']:
                 self.wd_instance = appium.webdriver.Remote(remote_url, browser_type)
-            	''':type: appium.webdriver.Remote'''
+                ''':type: appium.webdriver.Remote'''
             else:
                 self.wd_instance = webdriver.Remote(remote_url, browser_type)
-            	''':type: appium.webdriver.Remote'''
+                ''':type: appium.webdriver.Remote'''
                 self.wd_instance.set_script_timeout(10)
 
     def quit(self, log=True):
