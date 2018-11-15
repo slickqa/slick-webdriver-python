@@ -69,6 +69,7 @@ class Find(object):
 
     def __init__(self, by, value):
         self.finders = [(by, value), ]
+        self._and = False
 
     def describe(self):
         """Describe this finder in a plain english sort of way.  This allows for better logging.
@@ -97,6 +98,10 @@ class Find(object):
             return "android ui automator \"{}\"".format(value)
         elif name is MobileBy.ACCESSIBILITY_ID:
             return "accessibility id \"{}\"".format(value)
+        elif name is MobileBy.IOS_PREDICATE:
+            return "ios predicate string \"{}\"".format(value)
+        elif name is MobileBy.IOS_UIAUTOMATION:
+            return "ios uiautomation \"{}\"".format(value)
 
     def Or(self, finder):
         """
@@ -104,14 +109,34 @@ class Find(object):
 
             Search_Query_Text_Field = WebElementLocator("Search Box", Find.by_name("q").Or(Find.by_id("q")))
 
-        If you use this to include multiple finders, note that it is not super precise.  The framework iterates over
-        the list of finders, and the first one that returns an element wins.
+        The framework iterates over the list of finders and returns the first element found.
 
         :param finder: Another finder to consider when looking for the element.
         :type finder: :class:`.Find`
         :return: This same instance of Find with the other finder included.
         :rtype: :class:`.Find`
         """
+        self._and = False
+        self.finders.extend(finder.finders)
+        return self
+
+    def allow_multiple_finds(self):
+        return self._and
+
+    def And(self, finder):
+        """
+        You can _and_ multiple finders together by using the And method.  An example would be::
+
+            Search_Query_Text_Field = WebElementLocator("Search Box", Find.by_name("q").And(Find.by_id("q")))
+
+        The framework iterates over the list of finders and returns the results.
+
+        :param finder: Another finder to consider when looking for the element.
+        :type finder: :class:`.Find`
+        :return: This same instance of Find with the other finder included.
+        :rtype: :class:`.Find`
+        """
+        self._and = True
         self.finders.extend(finder.finders)
         return self
 
@@ -235,6 +260,31 @@ class Find(object):
         """
         return Find(MobileBy.ACCESSIBILITY_ID, accessibility_id)
 
+    @classmethod
+    def by_ios_predicate(cls, predicate_value):
+        """
+        Find a mobile element using an predicate locator.  Only valid on iOS.
+        https://github.com/appium/python-client/blob/master/test/functional/ios/find_by_ios_predicate_tests.py
+
+        :param predicate_value: The predicate to search for
+        :type predicate_value: str
+        :return: an instance of Find that looks for the predicate on the mobile device
+        :rtype: :class:`.Find`
+        """
+        return Find(MobileBy.IOS_PREDICATE, predicate_value)
+
+    @classmethod
+    def by_ios_uiautomation(cls, uiautomation_value):
+        """
+        Find a mobile element using an uiautomation locator.  Only valid on iOS.
+
+        :param uiautomation_value: The predicate to search for
+        :type uiautomation_value: str
+        :return: an instance of Find that looks for the uiautomation on the mobile device
+        :rtype: :class:`.Find`
+        """
+        return Find(MobileBy.IOS_PREDICATE, uiautomation_value)
+
 
 # there is no doc because this is not intended to be used externally (not that it can't be)
 class Timer(object):
@@ -284,7 +334,7 @@ class WebElementLocator(object):
         if self.parent is not None:
             return self.parent.get_name()
 
-    def find_all_elements_matching(self, wd_browser, log=True, angular=False):
+    def find_all_elements_matching(self, wd_browser, timeout=None, log=True, angular=False, retry_interval=.25):
         """
         Find a list of elements that match a finder.  This method can be useful if you are
         :doc:`raw-webdriver` and need to select from and inspect a list of elements.
@@ -292,6 +342,8 @@ class WebElementLocator(object):
         There is no timeout because it will return an empty list if no matching elements are found.
 
         :param wd_browser: The raw selenium webdriver driver instance.
+        :param timeout: the max time (in seconds) to wait before giving up on finding the element
+        :type timeout: int or float (use float for sub-second precision)
         :param log: Whether or not to log details of the look for the element (default is True)
         :type log: bool
         :return: list of matching elements
@@ -305,18 +357,58 @@ class WebElementLocator(object):
                 except:
                     time.sleep(.2)
         retval = []
-        if log:
-            self.logger.debug("Looking for a list of elements matching {}".format(self.describe()))
-        for finder in self.finder.finders:
-            try:
-                retval.extend(wd_browser.find_elements(finder[0], finder[1]))
-            except WebDriverException:
-                pass
-        if log:
-            self.logger.info("Found {} elements matching {}".format(len(retval), self.describe()))
-        return retval
+        if timeout == 0:
+            if log:
+                self.logger.debug("Looking for a list of elements matching {}".format(self.describe()))
+            for finder in self.finder.finders:
+                try:
+                    elements = wd_browser.find_elements(finder[0], finder[1])
+                    if not self.finder.allow_multiple_finds():
+                        if elements:
+                            retval = elements
+                            break
+                    else:
+                        retval.extend(elements)
 
-    def find_element_matching(self, wd_browser, timeout, log=True, angular=False):
+                except WebDriverException:
+                    pass
+            if log:
+                self.logger.info("Found {} elements matching {}".format(len(retval), self.describe()))
+
+            return retval
+        else:
+            timer = Timer(timeout)
+            if log:
+                self.logger.debug(
+                    "Waiting for up to {:.2f} seconds for element {} to be available.".format(float(timeout), self.describe()))
+
+            while not timer.is_past_timeout():
+                for finder in self.finder.finders:
+                    try:
+                        elements = wd_browser.find_elements(finder[0], finder[1])
+                        if not self.finder.allow_multiple_finds():
+                            if elements:
+                                retval = elements
+                                break
+                        else:
+                            retval.extend(elements)
+
+                    except WebDriverException:
+                        pass
+
+                if len(retval) > 0:
+                    if log:
+                        self.logger.debug("Found {} elements matching {}".format(len(retval), self.describe()))
+                    return retval
+
+                time.sleep(retry_interval)
+
+            if log:
+                self.logger.debug("Found {} elements matching {}".format(len(retval), self.describe()))
+
+            return retval
+
+    def find_element_matching(self, wd_browser, timeout=None, log=True, angular=False, retry_interval=.25):
         """
         Find a single element matching the finder(s) that make up this locator before a timeout is reached.
         This method is used internally by the framework when you call any action on a WebElementLocator, however
@@ -330,6 +422,9 @@ class WebElementLocator(object):
         :type log: bool
         :return: a raw webdriver webelement type on success, None on failure
         """
+        if timeout is None:
+            timeout = 0
+
         if angular:
             for i in range(3):
                 try:
@@ -337,6 +432,7 @@ class WebElementLocator(object):
                     break
                 except:
                     time.sleep(.2)
+
         if timeout == 0:
             if log:
                 self.logger.debug("Attempting 1 time to find element {} .".format(self.describe()))
@@ -350,18 +446,19 @@ class WebElementLocator(object):
                     self.logger.warn("Unable to find element {}".format(self.describe()))
                 return None
         else:
-            retval = None
             timer = Timer(timeout)
             if log:
                 self.logger.debug(
-                    "Waiting for up to {:.2f} seconds for element {} to be available.".format(float(timeout),
-                                                                                              self.describe()))
+                    "Waiting for up to {:.2f} seconds for element {} to be available.".format(float(timeout), self.describe()))
+
             while not timer.is_past_timeout():
                 for finder in self.finder.finders:
+                    retval = None
                     try:
                         retval = wd_browser.find_element(finder[0], finder[1])
                     except WebDriverException:
                         pass
+
                     if retval is not None:
                         if log:
                             self.logger.info(
