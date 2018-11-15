@@ -471,6 +471,81 @@ class WebElementLocator(object):
                         return retval
                 time.sleep(.25)
 
+    def find_all_elements_from_parent_element(self, parent_element, wd_browser, timeout=None, log=True, angular=False, retry_interval=.25):
+        """
+        Find all elements starting from a parent element
+        :param parent_element:
+        :param wd_browser:
+        :param timeout:
+        :param log:
+        :param angular:
+        :param retry_interval:
+        :return: list of web element
+        """
+        if timeout is None:
+            timeout = 0
+
+        if angular:
+            for i in range(3):
+                try:
+                    wd_browser.execute_async_script(WebElementLocator.WAIT_FOR_ANGULAR_JS)
+                    break
+                except:
+                    time.sleep(.2)
+
+        retval = []
+        if timeout == 0:
+            try:
+                if log:
+                    self.logger.debug("Looking for a list of elements matching: {}".format(self.describe()))
+
+                for finder in self.finder.finders:
+                    elements = parent_element.find_elements(by=finder[0], value=finder[1])
+                    if not self.finder.allow_multiple_finds():
+                        if elements:
+                            retval = elements
+                            break
+                    else:
+                        retval.extend(elements)
+
+            except WebDriverException:
+                pass
+
+            if log:
+                self.logger.debug("Found {} elements matching {}".format(len(retval), self.describe()))
+
+            return retval
+
+        else:
+            timer = Timer(timeout)
+            if log:
+                self.logger.debug(
+                    "Waiting for up to {:.2f} seconds for element {} to be available.".format(float(timeout), self.describe()))
+
+            while not timer.is_past_timeout():
+                try:
+                    if log:
+                        self.logger.debug("Looking for a list of elements matching: {}".format(self.describe()))
+
+                    for finder in self.finder.finders:
+                        elements = parent_element.find_elements(by=finder[0], value=finder[1])
+                        if not self.finder.allow_multiple_finds():
+                            if elements:
+                                retval = elements
+                                break
+                        else:
+                            retval.extend(elements)
+
+                except WebDriverException:
+                    pass
+
+                if len(retval) > 0:
+                    if log:
+                        self.logger.debug("Found {} elements matching {}".format(len(retval), self.describe()))
+                    return retval
+
+                time.sleep(retry_interval)
+
     def describe(self):
         """
         Describe the current locator in plain english.  Used for logging.
