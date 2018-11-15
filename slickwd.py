@@ -433,26 +433,18 @@ class WebElementLocator(object):
                 except:
                     time.sleep(.2)
 
-        retval = []
         if timeout == 0:
             if log:
-                self.logger.debug("Looking for a list of elements matching {}".format(self.describe()))
+                self.logger.debug("Attempting 1 time to find element {} .".format(self.describe()))
             for finder in self.finder.finders:
                 try:
-                    elements = wd_browser.find_elements(finder[0], finder[1])
-                    if not self.finder.allow_multiple_finds():
-                        if elements:
-                            retval = elements
-                            break
-                    else:
-                        retval.extend(elements)
-
+                    return wd_browser.find_element(finder[0], finder[1])
                 except WebDriverException:
                     pass
-            if log:
-                self.logger.debug("Found {} elements matching {}".format(len(retval), self.describe()))
-
-            return retval
+            else:
+                if log:
+                    self.logger.warn("Unable to find element {}".format(self.describe()))
+                return None
         else:
             timer = Timer(timeout)
             if log:
@@ -461,94 +453,23 @@ class WebElementLocator(object):
 
             while not timer.is_past_timeout():
                 for finder in self.finder.finders:
+                    retval = None
                     try:
-                        elements = wd_browser.find_elements(finder[0], finder[1])
-                        if not self.finder.allow_multiple_finds():
-                            if elements:
-                                retval = elements
-                                break
-                        else:
-                            retval.extend(elements)
-
+                        retval = wd_browser.find_element(finder[0], finder[1])
                     except WebDriverException:
                         pass
 
-                if len(retval) > 0:
-                    if log:
-                        self.logger.debug("Found {} elements matching {}".format(len(retval), self.describe()))
-                    return retval
-
-                time.sleep(retry_interval)
-
-            if log:
-                self.logger.debug("Found {} elements matching {}".format(len(retval), self.describe()))
-
-            return retval
-
-    def find_all_elements_from_parent_element(self, parent_element, wd_browser, timeout=None, log=True, angular=False, retry_interval=.25):
-        if timeout is None:
-            timeout = 0
-
-        if angular:
-            for i in range(3):
-                try:
-                    wd_browser.execute_async_script(WebElementLocator.WAIT_FOR_ANGULAR_JS)
-                    break
-                except:
-                    time.sleep(.2)
-
-        retval = []
-        if timeout == 0:
-            try:
-                if log:
-                    self.logger.debug("Looking for a list of elements matching: {}".format(self.describe()))
-
-                for finder in self.finder.finders:
-                    elements = parent_element.find_elements(by=finder[0], value=finder[1])
-                    if not self.finder.allow_multiple_finds():
-                        if elements:
-                            retval = elements
-                            break
-                    else:
-                        retval.extend(elements)
-
-            except WebDriverException:
-                pass
-
-            if log:
-                self.logger.debug("Found {} elements matching {}".format(len(retval), self.describe()))
-
-            return retval
-
-        else:
-            timer = Timer(timeout)
-            if log:
-                self.logger.debug(
-                    "Waiting for up to {:.2f} seconds for element {} to be available.".format(float(timeout), self.describe()))
-
-            while not timer.is_past_timeout():
-                try:
-                    if log:
-                        self.logger.debug("Looking for a list of elements matching: {}".format(self.describe()))
-
-                    for finder in self.finder.finders:
-                        elements = parent_element.find_elements(by=finder[0], value=finder[1])
-                        if not self.finder.allow_multiple_finds():
-                            if elements:
-                                retval = elements
-                                break
-                        else:
-                            retval.extend(elements)
-
-                except WebDriverException:
-                    pass
-
-                if len(retval) > 0:
-                    if log:
-                        self.logger.debug("Found {} elements matching {}".format(len(retval), self.describe()))
-                    return retval
-
-                time.sleep(retry_interval)
+                    if retval is not None:
+                        if log:
+                            self.logger.info(
+                                "Found element {} using locator property {} after {:.2f} seconds.".format(self.name,
+                                                                                                          Find.describe_single_finder(
+                                                                                                              finder[0],
+                                                                                                              finder[
+                                                                                                                  1]),
+                                                                                                          time.time() - timer.start))
+                        return retval
+                time.sleep(.25)
 
     def describe(self):
         """
