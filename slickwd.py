@@ -334,6 +334,20 @@ class WebElementLocator(object):
         if self.parent is not None:
             return self.parent.get_name()
 
+    def wait_for_angular(self, wd_browser, retry_interval):
+        """
+        Wait for angular to be available
+        :param wd_browser:
+        :param retry_interval:
+        :return:
+        """
+        for i in range(3):
+            try:
+                wd_browser.execute_async_script(WebElementLocator.WAIT_FOR_ANGULAR_JS)
+                break
+            except:
+                time.sleep(retry_interval)
+
     def find_all_elements_matching(self, wd_browser, timeout=None, log=True, angular=False, retry_interval=.25):
         """
         Find a list of elements that match a finder.  This method can be useful if you are
@@ -349,13 +363,12 @@ class WebElementLocator(object):
         :return: list of matching elements
         :rtype: list of web element
         """
+        if timeout is None:
+            timeout = 0
+
         if angular:
-            for i in range(3):
-                try:
-                    wd_browser.execute_async_script(WebElementLocator.WAIT_FOR_ANGULAR_JS)
-                    break
-                except:
-                    time.sleep(.2)
+            self.wait_for_angular(wd_browser, retry_interval)
+
         retval = []
         if timeout == 0:
             if log:
@@ -372,10 +385,11 @@ class WebElementLocator(object):
 
                 except WebDriverException:
                     pass
-            if log:
-                self.logger.info("Found {} elements matching {}".format(len(retval), self.describe()))
+            if len(retval) > 0:
+                if log:
+                    self.logger.debug("Found {} elements matching {}".format(len(retval), self.describe()))
 
-            return retval
+                return retval
         else:
             timer = Timer(timeout)
             if log:
@@ -403,10 +417,13 @@ class WebElementLocator(object):
 
                 time.sleep(retry_interval)
 
-            if log:
-                self.logger.debug("Found {} elements matching {}".format(len(retval), self.describe()))
+            if len(retval) > 0:
+                if log:
+                    self.logger.debug("Found {} elements matching {}".format(len(retval), self.describe()))
 
-            return retval
+                return retval
+
+        return []
 
     def find_element_matching(self, wd_browser, timeout=None, log=True, angular=False, retry_interval=.25):
         """
@@ -426,12 +443,7 @@ class WebElementLocator(object):
             timeout = 0
 
         if angular:
-            for i in range(3):
-                try:
-                    wd_browser.execute_async_script(WebElementLocator.WAIT_FOR_ANGULAR_JS)
-                    break
-                except:
-                    time.sleep(.2)
+            self.wait_for_angular(wd_browser, retry_interval)
 
         if timeout == 0:
             if log:
@@ -469,7 +481,8 @@ class WebElementLocator(object):
                                                                                                                   1]),
                                                                                                           time.time() - timer.start))
                         return retval
-                time.sleep(.25)
+
+                time.sleep(retry_interval)
 
     def find_all_elements_from_parent_element(self, parent_element, wd_browser, timeout=None, log=True, angular=False, retry_interval=.25):
         """
@@ -486,12 +499,7 @@ class WebElementLocator(object):
             timeout = 0
 
         if angular:
-            for i in range(3):
-                try:
-                    wd_browser.execute_async_script(WebElementLocator.WAIT_FOR_ANGULAR_JS)
-                    break
-                except:
-                    time.sleep(.2)
+            self.wait_for_angular(wd_browser, retry_interval)
 
         retval = []
         if timeout == 0:
@@ -511,10 +519,11 @@ class WebElementLocator(object):
             except WebDriverException:
                 pass
 
-            if log:
-                self.logger.debug("Found {} elements matching {}".format(len(retval), self.describe()))
+            if len(retval) > 0:
+                if log:
+                    self.logger.debug("Found {} elements matching {}".format(len(retval), self.describe()))
 
-            return retval
+                return retval
 
         else:
             timer = Timer(timeout)
@@ -545,6 +554,8 @@ class WebElementLocator(object):
                     return retval
 
                 time.sleep(retry_interval)
+
+        return []
 
     def describe(self):
         """
